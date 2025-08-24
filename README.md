@@ -23,7 +23,7 @@
 | **Feature**                             | **Description**                                                                                |
 | --------------------------------------- | ---------------------------------------------------------------------------------------------- |
 | **📖 Multi-Format Support**             | Support for EPUB, PDF, TXT, DOCX, DOC, HTML, RTF, and Markdown with seamless format detection  |
-| **👄 Modular TTS System**               | Edge TTS (default), ElevenLabs TTS (AI voices), and Kokoro TTS (local/offline) with extensible architecture |
+| **👄 Modular TTS System**               | Edge TTS (default), Apple TTS (macOS native), ElevenLabs TTS (AI voices), and Kokoro TTS (local/offline) with extensible architecture |
 | **🌌 Rich Terminal UI**                 | Clean, responsive interface with customizable color themes and full mouse & keyboard support   |
 | **💾 Smart Persistence**                | Automatic progress saving, state restoration, and cross-session continuity for seamless reading|
 | **🌍 Cross-Platform & Multilingual**    | Full support for macOS, Linux, Windows with 100+ languages and consistent global experience    |
@@ -123,6 +123,21 @@ pip install -r requirements.txt
 pip install .
 ```
 
+#### Enable Apple TTS (macOS Only)
+
+For native macOS speech synthesis (no additional installation required):
+
+```bash
+# Apple TTS is automatically available on macOS systems
+# Uses the built-in 'say' command with system voices
+
+# List available voices:
+say -v ?
+
+# Use Apple TTS with a specific voice:
+lue --tts apple --voice "Samantha" path/to/your/book.epub
+```
+
 #### Enable ElevenLabs TTS (Optional)
 
 For high-quality AI voice synthesis:
@@ -149,6 +164,7 @@ export ELEVENLABS_API_KEY="your_api_key_here"
 lue path/to/your/book.epub
 
 # Use specific TTS model  
+lue --tts apple path/to/your/book.epub
 lue --tts kokoro path/to/your/book.epub
 lue --tts elevenlabs path/to/your/book.epub
 

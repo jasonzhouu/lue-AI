@@ -132,7 +132,7 @@ For native macOS speech synthesis (no additional installation required):
 # Uses the built-in 'say' command with system voices
 
 # List available voices:
-say -v ?
+say -v '?'
 
 # Use Apple TTS with a specific voice:
 lue --tts apple --voice "Samantha" path/to/your/book.epub

@@ -23,7 +23,7 @@
 | **Feature**                             | **Description**                                                                                |
 | --------------------------------------- | ---------------------------------------------------------------------------------------------- |
 | **📖 Multi-Format Support**             | Support for EPUB, PDF, TXT, DOCX, DOC, HTML, RTF, and Markdown with seamless format detection  |
-| **👄 Modular TTS System**               | Edge TTS (default), Apple TTS (macOS native), ElevenLabs TTS (AI voices), and Kokoro TTS (local/offline) with extensible architecture |
+| **👄 Modular TTS System**               | Edge TTS (default), Apple TTS (macOS native), Google TTS (Cloud AI), ElevenLabs TTS (AI voices), and Kokoro TTS (local/offline) with extensible architecture |
 | **🌌 Rich Terminal UI**                 | Clean, responsive interface with customizable color themes and full mouse & keyboard support   |
 | **💾 Smart Persistence**                | Automatic progress saving, state restoration, and cross-session continuity for seamless reading|
 | **🌍 Cross-Platform & Multilingual**    | Full support for macOS, Linux, Windows with 100+ languages and consistent global experience    |
@@ -138,6 +138,22 @@ say -v ?
 lue --tts apple --voice "Samantha" path/to/your/book.epub
 ```
 
+#### Enable Google Cloud TTS (Optional)
+
+For Google's high-quality Cloud Text-to-Speech:
+
+```bash
+# 1. Install Google Cloud TTS package
+pip install google-cloud-texttospeech
+
+# 2. Set up Google Cloud credentials
+# Create a service account key at: https://console.cloud.google.com/iam-admin/serviceaccounts
+export GOOGLE_APPLICATION_CREDENTIALS="/path/to/your/service-account-key.json"
+
+# 3. Use Google TTS with a specific voice:
+lue --tts google --voice "en-US-Wavenet-D" path/to/your/book.epub
+```
+
 #### Enable ElevenLabs TTS (Optional)
 
 For high-quality AI voice synthesis:
@@ -165,6 +181,7 @@ lue path/to/your/book.epub
 
 # Use specific TTS model  
 lue --tts apple path/to/your/book.epub
+lue --tts google path/to/your/book.epub
 lue --tts kokoro path/to/your/book.epub
 lue --tts elevenlabs path/to/your/book.epub
 

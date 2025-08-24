@@ -12,6 +12,7 @@ TTS_VOICES = {
     "kokoro": "af_heart",
     "elevenlabs": "21m00Tcm4TlvDq8ikWAM",  # Default ElevenLabs voice
     "apple": "Samantha",  # Default Apple voice (English female)
+    "google": "en-US-Standard-C",  # Default Google Cloud TTS voice
 }
 
 # Language codes for TTS models that require them

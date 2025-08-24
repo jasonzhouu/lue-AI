@@ -11,6 +11,7 @@ TTS_VOICES = {
     "edge": "en-US-JennyNeural",
     "kokoro": "af_heart",
     "elevenlabs": "21m00Tcm4TlvDq8ikWAM",  # Default ElevenLabs voice
+    "apple": "Samantha",  # Default Apple voice (English female)
 }
 
 # Language codes for TTS models that require them

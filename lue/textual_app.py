@@ -33,48 +33,112 @@ class ReaderWidget(Static):
         
     def compose(self) -> ComposeResult:
         """Create child widgets."""
-        yield Static(id="content-display")
-        yield ProgressBar(total=100, show_eta=False, id="progress-bar")
+        with Vertical():
+            yield Static(id="content-display")
+            with Horizontal():
+                yield ProgressBar(total=100, show_eta=False, id="progress-bar")
+                yield Static(id="tts-status")
+        
+    def on_mount(self) -> None:
+        """Initialize widget when mounted."""
+        self.update_content_display()
+        self.update_progress()
+        self.update_tts_status()
         
     def watch_current_position(self, position: tuple) -> None:
         """Update display when position changes."""
         self.update_content_display()
         self.update_progress()
+        self.update_tts_status()
         
     def update_content_display(self) -> None:
         """Update the main content display."""
-        content_widget = self.query_one("#content-display", Static)
-        
-        # Get current content from lue instance
-        if hasattr(self.lue, 'get_current_display_content'):
-            display_content = self.lue.get_current_display_content()
-        else:
-            # Fallback to basic content display
-            chapter_idx, para_idx, sent_idx = self.current_position
-            if (chapter_idx < len(self.lue.chapters) and 
-                para_idx < len(self.lue.chapters[chapter_idx])):
-                paragraph = self.lue.chapters[chapter_idx][para_idx]
-                display_content = Text(paragraph)
+        try:
+            content_widget = self.query_one("#content-display", Static)
+            
+            # Get terminal height for proper content sizing
+            from .ui import get_terminal_size
+            _, height = get_terminal_size()
+            display_height = max(10, height - 6)  # Reserve space for progress bar and footer
+            
+            # Get current content from lue instance
+            if hasattr(self.lue, 'get_current_display_content'):
+                display_content = self.lue.get_current_display_content(height=display_height)
             else:
-                display_content = Text("No content available")
-                
-        content_widget.update(display_content)
+                # Fallback to basic content display
+                display_content = self._get_fallback_content()
+                    
+            content_widget.update(display_content)
+        except Exception as e:
+            # Graceful error handling
+            content_widget = self.query_one("#content-display", Static)
+            content_widget.update(Text(f"Error updating display: {str(e)}", style="red"))
+        
+    def _get_fallback_content(self) -> Text:
+        """Fallback content display method."""
+        chapter_idx, para_idx, sent_idx = self.current_position
+        if (chapter_idx < len(self.lue.chapters) and 
+            para_idx < len(self.lue.chapters[chapter_idx])):
+            paragraph = self.lue.chapters[chapter_idx][para_idx]
+            return Text(paragraph, style="white")
+        else:
+            return Text("No content available", style="dim")
         
     def update_progress(self) -> None:
         """Update the progress bar."""
-        progress_widget = self.query_one("#progress-bar", ProgressBar)
-        
-        # Calculate progress percentage
-        if hasattr(self.lue, 'get_reading_progress'):
-            progress = self.lue.get_reading_progress()
-        else:
-            # Fallback calculation
-            chapter_idx, para_idx, sent_idx = self.current_position
-            total_paragraphs = sum(len(chapter) for chapter in self.lue.chapters)
-            current_paragraph = sum(len(self.lue.chapters[i]) for i in range(chapter_idx)) + para_idx
-            progress = (current_paragraph / total_paragraphs * 100) if total_paragraphs > 0 else 0
+        try:
+            progress_widget = self.query_one("#progress-bar", ProgressBar)
             
-        progress_widget.update(progress=progress)
+            # Calculate progress percentage
+            if hasattr(self.lue, 'get_reading_progress'):
+                progress = self.lue.get_reading_progress()
+            else:
+                # Fallback calculation
+                chapter_idx, para_idx, sent_idx = self.current_position
+                total_paragraphs = sum(len(chapter) for chapter in self.lue.chapters)
+                current_paragraph = sum(len(self.lue.chapters[i]) for i in range(chapter_idx)) + para_idx
+                progress = (current_paragraph / total_paragraphs * 100) if total_paragraphs > 0 else 0
+                
+            progress_widget.update(progress=progress)
+        except Exception:
+            # Graceful error handling for progress bar
+            pass
+            
+    def update_tts_status(self) -> None:
+        """Update TTS status display."""
+        try:
+            tts_widget = self.query_one("#tts-status", Static)
+            
+            # Get TTS status
+            is_paused = getattr(self.lue, 'is_paused', True)
+            has_tts = getattr(self.lue, 'tts_model', None) is not None
+            auto_scroll = getattr(self.lue, 'auto_scroll_enabled', False)
+            
+            status_parts = []
+            if has_tts:
+                if is_paused:
+                    status_parts.append("⏸️ Paused")
+                else:
+                    status_parts.append("▶️ Playing")
+            else:
+                status_parts.append("🔇 No TTS")
+                
+            if auto_scroll:
+                status_parts.append("📜 Auto")
+                
+            status_text = " | ".join(status_parts)
+            tts_widget.update(Text(status_text, style="dim"))
+        except Exception:
+            pass
+            
+    def refresh_display(self) -> None:
+        """Force refresh of the display."""
+        self.current_position = (
+            getattr(self.lue, 'chapter_idx', 0),
+            getattr(self.lue, 'paragraph_idx', 0),
+            getattr(self.lue, 'sentence_idx', 0)
+        )
+        self.update_tts_status()
 
 
 class TOCModal(ModalScreen):
@@ -92,7 +156,8 @@ class TOCModal(ModalScreen):
     def __init__(self, lue_instance: lue_reader.Lue):
         super().__init__()
         self.lue = lue_instance
-        self.selected_chapter = 0
+        # Initialize selected chapter to current chapter
+        self.selected_chapter = getattr(lue_instance, 'chapter_idx', 0)
         
     def compose(self) -> ComposeResult:
         """Create the TOC interface."""
@@ -106,26 +171,48 @@ class TOCModal(ModalScreen):
         
     def update_toc_display(self) -> None:
         """Update the TOC content display."""
-        toc_widget = self.query_one("#toc-content", Static)
-        
-        # Get chapter titles from lue instance
-        if hasattr(self.lue, 'get_chapter_titles'):
-            chapter_titles = self.lue.get_chapter_titles()
-        else:
-            # Fallback: generate basic chapter titles
-            chapter_titles = [f"Chapter {i+1}" for i in range(len(self.lue.chapters))]
+        try:
+            toc_widget = self.query_one("#toc-content", Static)
             
-        # Build TOC display with selection indicators
-        toc_lines = []
-        current_chapter = getattr(self.lue, 'chapter_idx', 0)
-        
-        for i, title in enumerate(chapter_titles):
-            prefix = "●" if i == current_chapter else " "
-            prefix += "▶" if i == self.selected_chapter else " "
-            toc_lines.append(f"{prefix} {title}")
+            # Get chapter titles from lue instance
+            if hasattr(self.lue, 'get_chapter_titles'):
+                chapter_titles = self.lue.get_chapter_titles()
+            else:
+                # Fallback: generate basic chapter titles
+                chapter_titles = [f"Chapter {i+1}" for i in range(len(self.lue.chapters))]
+                
+            # Build TOC display with selection indicators
+            toc_lines = []
+            current_chapter = getattr(self.lue, 'chapter_idx', 0)
             
-        toc_content = Text("\n".join(toc_lines))
-        toc_widget.update(toc_content)
+            for i, title in enumerate(chapter_titles):
+                # Current chapter indicator
+                current_indicator = "●" if i == current_chapter else " "
+                # Selection indicator
+                selection_indicator = "▶" if i == self.selected_chapter else " "
+                
+                # Style based on selection
+                if i == self.selected_chapter:
+                    style = "bold yellow on blue"
+                elif i == current_chapter:
+                    style = "bold green"
+                else:
+                    style = "white"
+                
+                line_text = f"{current_indicator}{selection_indicator} {title}"
+                toc_lines.append((line_text, style))
+            
+            # Build the final display text
+            toc_display = Text()
+            for i, (line_text, style) in enumerate(toc_lines):
+                if i > 0:
+                    toc_display.append("\n")
+                toc_display.append(line_text, style=style)
+                
+            toc_widget.update(toc_display)
+        except Exception as e:
+            toc_widget = self.query_one("#toc-content", Static)
+            toc_widget.update(Text(f"Error updating TOC: {str(e)}", style="red"))
         
     def action_cursor_up(self) -> None:
         """Move selection up."""
@@ -142,16 +229,25 @@ class TOCModal(ModalScreen):
             
     def action_select_chapter(self) -> None:
         """Jump to selected chapter."""
-        # Jump to selected chapter in lue instance
-        if hasattr(self.lue, 'jump_to_chapter'):
-            self.lue.jump_to_chapter(self.selected_chapter)
-        else:
-            # Fallback: set position manually
-            self.lue.chapter_idx = self.selected_chapter
-            self.lue.paragraph_idx = 0
-            self.lue.sentence_idx = 0
-            
-        self.dismiss()
+        try:
+            # Jump to selected chapter in lue instance
+            if hasattr(self.lue, 'jump_to_chapter'):
+                self.lue.jump_to_chapter(self.selected_chapter)
+            else:
+                # Fallback: set position manually
+                self.lue.chapter_idx = self.selected_chapter
+                self.lue.paragraph_idx = 0
+                self.lue.sentence_idx = 0
+                
+                # Update UI state if available
+                if hasattr(self.lue, 'ui_chapter_idx'):
+                    self.lue.ui_chapter_idx = self.selected_chapter
+                    self.lue.ui_paragraph_idx = 0
+                    self.lue.ui_sentence_idx = 0
+                    
+            self.dismiss()
+        except Exception:
+            self.dismiss()
         
     def action_quit(self) -> None:
         """Quit the application."""
@@ -159,7 +255,7 @@ class TOCModal(ModalScreen):
 
 
 class AIAssistantModal(ModalScreen):
-    """AI Assistant modal screen."""
+    """AI Assistant modal screen with proper input handling."""
     
     BINDINGS = [
         Binding("escape", "dismiss", "Close"),
@@ -172,6 +268,8 @@ class AIAssistantModal(ModalScreen):
         self.lue = lue_instance
         self.input_buffer = ""
         self.conversation_history = []
+        self.current_context = ""
+        self.waiting_for_response = False
         
     def compose(self) -> ComposeResult:
         """Create the AI Assistant interface."""
@@ -189,41 +287,62 @@ class AIAssistantModal(ModalScreen):
         
     def update_context_display(self) -> None:
         """Update the current sentence context."""
-        context_widget = self.query_one("#ai-context", Static)
-        
-        # Get current sentence from lue instance
-        if hasattr(self.lue, 'get_current_sentence'):
-            current_sentence = self.lue.get_current_sentence()
-        else:
-            current_sentence = "No sentence available"
+        try:
+            context_widget = self.query_one("#ai-context", Static)
             
-        context_content = Text(f"Current: {current_sentence}")
-        context_widget.update(context_content)
+            # Get current sentence from lue instance
+            if hasattr(self.lue, 'get_current_sentence'):
+                current_sentence = self.lue.get_current_sentence()
+            else:
+                current_sentence = "No sentence available"
+                
+            self.current_context = current_sentence
+            context_content = Text(f"Current: {current_sentence[:100]}...", style="cyan")
+            context_widget.update(context_content)
+        except Exception:
+            pass
         
     def update_conversation_display(self) -> None:
         """Update the conversation history."""
-        conv_widget = self.query_one("#ai-conversation", Static)
-        
-        if self.conversation_history:
-            conv_lines = []
-            for entry in self.conversation_history[-5:]:  # Show last 5 exchanges
-                conv_lines.append(f"Q: {entry['question']}")
-                conv_lines.append(f"A: {entry['answer']}")
-                conv_lines.append("")
-            conv_content = Text("\n".join(conv_lines))
-        else:
-            conv_content = Text("Ask a question about the current text...")
+        try:
+            conv_widget = self.query_one("#ai-conversation", Static)
             
-        conv_widget.update(conv_content)
+            if self.conversation_history:
+                conv_display = Text()
+                for i, entry in enumerate(self.conversation_history[-3:]):  # Show last 3 exchanges
+                    if i > 0:
+                        conv_display.append("\n")
+                    conv_display.append(f"Q: {entry['question']}", style="yellow")
+                    conv_display.append("\n")
+                    conv_display.append(f"A: {entry['answer'][:200]}...", style="green")
+                    conv_display.append("\n")
+            else:
+                conv_display = Text("Ask a question about the current text...", style="dim")
+                
+            conv_widget.update(conv_display)
+        except Exception:
+            pass
         
     def update_input_display(self) -> None:
         """Update the input buffer display."""
-        input_widget = self.query_one("#ai-input-display", Static)
-        input_content = Text(f"❯ {self.input_buffer}█")
-        input_widget.update(input_content)
+        try:
+            input_widget = self.query_one("#ai-input-display", Static)
+            
+            if self.waiting_for_response:
+                input_content = Text("❯ Waiting for AI response...", style="yellow")
+            else:
+                cursor = "█" if len(self.input_buffer) % 2 == 0 else " "  # Blinking cursor effect
+                input_content = Text(f"❯ {self.input_buffer}{cursor}", style="white")
+                
+            input_widget.update(input_content)
+        except Exception:
+            pass
         
     def on_key(self, event) -> None:
         """Handle key input for the AI assistant."""
+        if self.waiting_for_response:
+            return  # Ignore input while waiting for response
+            
         if event.key == "backspace":
             if self.input_buffer:
                 self.input_buffer = self.input_buffer[:-1]
@@ -234,31 +353,44 @@ class AIAssistantModal(ModalScreen):
             
     def action_clear_input(self) -> None:
         """Clear the input buffer."""
-        self.input_buffer = ""
-        self.update_input_display()
+        if not self.waiting_for_response:
+            self.input_buffer = ""
+            self.update_input_display()
         
     async def action_send_message(self) -> None:
         """Send message to AI assistant."""
-        if not self.input_buffer.strip():
+        if not self.input_buffer.strip() or self.waiting_for_response:
             return
             
         question = self.input_buffer.strip()
         self.input_buffer = ""
+        self.waiting_for_response = True
         self.update_input_display()
         
-        # Get AI response from lue instance
-        if hasattr(self.lue, 'get_ai_response'):
-            answer = await self.lue.get_ai_response(question)
-        else:
-            answer = "AI Assistant not configured"
+        try:
+            # Get AI response from lue instance
+            if hasattr(self.lue, 'get_ai_response'):
+                answer = await self.lue.get_ai_response(question)
+            else:
+                answer = "AI Assistant not configured. Please set up Gemini API key."
+                
+            # Add to conversation history
+            self.conversation_history.append({
+                'question': question,
+                'answer': answer,
+                'context': self.current_context
+            })
             
-        # Add to conversation history
-        self.conversation_history.append({
-            'question': question,
-            'answer': answer
-        })
-        
-        self.update_conversation_display()
+        except Exception as e:
+            self.conversation_history.append({
+                'question': question,
+                'answer': f"Error: {str(e)}",
+                'context': self.current_context
+            })
+        finally:
+            self.waiting_for_response = False
+            self.update_conversation_display()
+            self.update_input_display()
 
 
 class LueApp(App):
@@ -272,8 +404,15 @@ class LueApp(App):
     }
     
     #progress-bar {
+        width: 3fr;
         height: 1;
-        margin: 1 0;
+    }
+    
+    #tts-status {
+        width: 1fr;
+        height: 1;
+        text-align: right;
+        padding: 0 1;
     }
     
     #toc-container, #ai-container {
@@ -288,6 +427,10 @@ class LueApp(App):
         text-align: center;
         text-style: bold;
         margin-bottom: 1;
+    }
+    
+    Horizontal {
+        height: auto;
     }
     """
     
@@ -348,27 +491,80 @@ class LueApp(App):
     # Navigation actions
     def action_prev_paragraph(self) -> None:
         """Move to previous paragraph."""
-        if hasattr(self.lue, 'move_to_prev_paragraph'):
-            self.lue.move_to_prev_paragraph()
+        try:
+            if hasattr(self.lue, 'move_to_prev_paragraph'):
+                self.lue.move_to_prev_paragraph()
+            else:
+                # Direct navigation fallback
+                if self.lue.paragraph_idx > 0:
+                    self.lue.paragraph_idx -= 1
+                    self.lue.sentence_idx = 0
+                elif self.lue.chapter_idx > 0:
+                    self.lue.chapter_idx -= 1
+                    self.lue.paragraph_idx = len(self.lue.chapters[self.lue.chapter_idx]) - 1
+                    self.lue.sentence_idx = 0
             self._update_position()
+        except Exception:
+            pass
             
     def action_next_paragraph(self) -> None:
         """Move to next paragraph."""
-        if hasattr(self.lue, 'move_to_next_paragraph'):
-            self.lue.move_to_next_paragraph()
+        try:
+            if hasattr(self.lue, 'move_to_next_paragraph'):
+                self.lue.move_to_next_paragraph()
+            else:
+                # Direct navigation fallback
+                current_chapter = self.lue.chapters[self.lue.chapter_idx]
+                if self.lue.paragraph_idx < len(current_chapter) - 1:
+                    self.lue.paragraph_idx += 1
+                    self.lue.sentence_idx = 0
+                elif self.lue.chapter_idx < len(self.lue.chapters) - 1:
+                    self.lue.chapter_idx += 1
+                    self.lue.paragraph_idx = 0
+                    self.lue.sentence_idx = 0
             self._update_position()
+        except Exception:
+            pass
             
     def action_prev_sentence(self) -> None:
         """Move to previous sentence."""
-        if hasattr(self.lue, 'move_to_prev_sentence'):
-            self.lue.move_to_prev_sentence()
+        try:
+            if hasattr(self.lue, 'move_to_prev_sentence'):
+                self.lue.move_to_prev_sentence()
+            else:
+                # Direct navigation fallback
+                from . import content_parser
+                if self.lue.sentence_idx > 0:
+                    self.lue.sentence_idx -= 1
+                else:
+                    # Move to previous paragraph
+                    self.action_prev_paragraph()
+                    # Set to last sentence of new paragraph
+                    current_para = self.lue.chapters[self.lue.chapter_idx][self.lue.paragraph_idx]
+                    sentences = content_parser.split_into_sentences(current_para)
+                    self.lue.sentence_idx = max(0, len(sentences) - 1)
             self._update_position()
+        except Exception:
+            pass
             
     def action_next_sentence(self) -> None:
         """Move to next sentence."""
-        if hasattr(self.lue, 'move_to_next_sentence'):
-            self.lue.move_to_next_sentence()
+        try:
+            if hasattr(self.lue, 'move_to_next_sentence'):
+                self.lue.move_to_next_sentence()
+            else:
+                # Direct navigation fallback
+                from . import content_parser
+                current_para = self.lue.chapters[self.lue.chapter_idx][self.lue.paragraph_idx]
+                sentences = content_parser.split_into_sentences(current_para)
+                if self.lue.sentence_idx < len(sentences) - 1:
+                    self.lue.sentence_idx += 1
+                else:
+                    # Move to next paragraph
+                    self.action_next_paragraph()
             self._update_position()
+        except Exception:
+            pass
             
     # Scrolling actions
     def action_scroll_page_up(self) -> None:
@@ -417,31 +613,70 @@ class LueApp(App):
     # Control actions
     def action_pause(self) -> None:
         """Pause/resume TTS."""
-        if hasattr(self.lue, 'toggle_pause'):
-            self.lue.toggle_pause()
+        try:
+            if hasattr(self.lue, 'toggle_pause'):
+                self.lue.toggle_pause()
+            else:
+                # Direct toggle fallback
+                self.lue.is_paused = not getattr(self.lue, 'is_paused', True)
+            self._update_tts_status()
+        except Exception:
+            pass
             
     def action_toggle_auto_scroll(self) -> None:
         """Toggle auto scroll."""
-        if hasattr(self.lue, 'toggle_auto_scroll'):
-            self.lue.toggle_auto_scroll()
+        try:
+            if hasattr(self.lue, 'toggle_auto_scroll'):
+                self.lue.toggle_auto_scroll()
+            else:
+                # Direct toggle fallback
+                self.lue.auto_scroll_enabled = not getattr(self.lue, 'auto_scroll_enabled', False)
+            self._update_tts_status()
+        except Exception:
+            pass
             
     # Modal actions
     def action_show_toc(self) -> None:
         """Show table of contents."""
-        self.push_screen(TOCModal(self.lue))
+        def handle_toc_result(result):
+            """Handle TOC modal result and update display."""
+            self._update_position()
+            
+        self.push_screen(TOCModal(self.lue), handle_toc_result)
         
     def action_show_ai_assistant(self) -> None:
         """Show AI assistant."""
-        self.push_screen(AIAssistantModal(self.lue))
+        def handle_ai_result(result):
+            """Handle AI Assistant modal result."""
+            # Update context when returning from AI assistant
+            pass
+            
+        self.push_screen(AIAssistantModal(self.lue), handle_ai_result)
         
     def _update_position(self) -> None:
         """Update the reader widget position."""
-        reader_widget = self.query_one(ReaderWidget)
-        reader_widget.current_position = (
-            getattr(self.lue, 'chapter_idx', 0),
-            getattr(self.lue, 'paragraph_idx', 0),
-            getattr(self.lue, 'sentence_idx', 0)
-        )
+        try:
+            reader_widget = self.query_one(ReaderWidget)
+            reader_widget.current_position = (
+                getattr(self.lue, 'chapter_idx', 0),
+                getattr(self.lue, 'paragraph_idx', 0),
+                getattr(self.lue, 'sentence_idx', 0)
+            )
+            # Also update UI state if available
+            if hasattr(self.lue, 'ui_chapter_idx'):
+                self.lue.ui_chapter_idx = self.lue.chapter_idx
+                self.lue.ui_paragraph_idx = self.lue.paragraph_idx
+                self.lue.ui_sentence_idx = self.lue.sentence_idx
+        except Exception:
+            pass
+            
+    def _update_tts_status(self) -> None:
+        """Update TTS status in reader widget."""
+        try:
+            reader_widget = self.query_one(ReaderWidget)
+            reader_widget.update_tts_status()
+        except Exception:
+            pass
 
 
 def run_textual_app(file_path: str, tts_model: Optional[TTSBase] = None, overlap: Optional[float] = None):

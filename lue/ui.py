@@ -506,26 +506,30 @@ def render_table_of_contents(reader, selected_chapter_idx=0):
     Render a full-screen table of contents overlay.
     """
     from . import content_parser
+    from rich.console import Console
+    from rich.text import Text
     
     try:
         width, height = get_terminal_size()
+        console = Console()
         
         # Extract chapter titles
         chapter_titles = content_parser.extract_chapter_titles(reader.chapters)
         
         # Clear screen
-        sys.stdout.write('\033[2J\033[H')
+        console.clear()
         
         # Create title
         title = "TABLE OF CONTENTS"
-        title_line = f"{'─' * ((width - len(title)) // 2)}{title}{'─' * ((width - len(title)) // 2)}"
-        if len(title_line) < width:
-            title_line += '─'
         
-        # Print title
-        print(f"\033[{COLORS.TOC_BORDER}m┌{'─' * (width - 2)}┐\033[0m")
-        print(f"\033[{COLORS.TOC_BORDER}m│\033[{COLORS.TOC_TITLE}m{title.center(width - 2)}\033[{COLORS.TOC_BORDER}m│\033[0m")
-        print(f"\033[{COLORS.TOC_BORDER}m├{'─' * (width - 2)}┤\033[0m")
+        # Print title with borders
+        border_line = "┌" + "─" * (width - 2) + "┐"
+        title_line = "│" + title.center(width - 2) + "│"
+        separator_line = "├" + "─" * (width - 2) + "┤"
+        
+        console.print(Text(border_line, style=COLORS.TOC_BORDER))
+        console.print(Text(title_line, style=f"{COLORS.TOC_BORDER} {COLORS.TOC_TITLE}"))
+        console.print(Text(separator_line, style=COLORS.TOC_BORDER))
         
         # Calculate available space for chapters
         available_height = height - 8  # Reserve space for title, controls, and borders
@@ -539,7 +543,8 @@ def render_table_of_contents(reader, selected_chapter_idx=0):
         # Print empty lines to center content
         empty_lines = (available_height - (end_idx - start_idx)) // 2
         for _ in range(empty_lines):
-            print(f"\033[{COLORS.TOC_BORDER}m│{' ' * (width - 2)}│\033[0m")
+            empty_line = "│" + " " * (width - 2) + "│"
+            console.print(Text(empty_line, style=COLORS.TOC_BORDER))
         
         # Print chapters
         for i in range(start_idx, end_idx):
@@ -554,56 +559,66 @@ def render_table_of_contents(reader, selected_chapter_idx=0):
             if i == selected_chapter_idx:
                 # Selected chapter
                 indicator = "▶ "
-                color = COLORS.TOC_SELECTED_CHAPTER
+                style = COLORS.TOC_SELECTED_CHAPTER
             elif chapter_idx == reader.chapter_idx:
                 # Current reading chapter
                 indicator = "● "
-                color = COLORS.TOC_CURRENT_CHAPTER
+                style = COLORS.TOC_CURRENT_CHAPTER
             else:
                 # Normal chapter
                 indicator = "  "
-                color = COLORS.TOC_NORMAL_CHAPTER
+                style = COLORS.TOC_NORMAL_CHAPTER
             
             chapter_text = f"{indicator}{title}"
             padding = width - 2 - len(chapter_text)
+            full_line = "│" + chapter_text + " " * padding + "│"
             
-            print(f"\033[{COLORS.TOC_BORDER}m│\033[{color}m{chapter_text}{' ' * padding}\033[{COLORS.TOC_BORDER}m│\033[0m")
+            console.print(Text(full_line, style=style))
         
         # Fill remaining space
         remaining_lines = available_height - (end_idx - start_idx) - empty_lines
         for _ in range(remaining_lines):
-            print(f"\033[{COLORS.TOC_BORDER}m│{' ' * (width - 2)}│\033[0m")
+            empty_line = "│" + " " * (width - 2) + "│"
+            console.print(Text(empty_line, style=COLORS.TOC_BORDER))
         
         # Print controls
-        print(f"\033[{COLORS.TOC_BORDER}m├{'─' * (width - 2)}┤\033[0m")
+        separator_line = "├" + "─" * (width - 2) + "┤"
+        console.print(Text(separator_line, style=COLORS.TOC_BORDER))
         
         controls = "[↑↓] Navigate   [Enter] Jump to Chapter   [Esc/c] Close   [q] Quit"
         controls_padding = (width - 2 - len(controls)) // 2
-        print(f"\033[{COLORS.TOC_BORDER}m│\033[{COLORS.TOC_CONTROLS}m{' ' * controls_padding}{controls}{' ' * (width - 2 - len(controls) - controls_padding)}\033[{COLORS.TOC_BORDER}m│\033[0m")
+        controls_line = "│" + " " * controls_padding + controls + " " * (width - 2 - len(controls) - controls_padding) + "│"
+        console.print(Text(controls_line, style=COLORS.TOC_CONTROLS))
         
         # Current position info
         current_info = f"Current: {chapter_titles[reader.chapter_idx][1]} (Chapter {reader.chapter_idx + 1}/{len(chapter_titles)})"
         if len(current_info) > width - 4:
             current_info = current_info[:width - 7] + "..."
         info_padding = (width - 2 - len(current_info)) // 2
-        print(f"\033[{COLORS.TOC_BORDER}m│\033[0m{' ' * info_padding}{current_info}{' ' * (width - 2 - len(current_info) - info_padding)}\033[{COLORS.TOC_BORDER}m│\033[0m")
+        info_line = "│" + " " * info_padding + current_info + " " * (width - 2 - len(current_info) - info_padding) + "│"
+        console.print(Text(info_line, style="white"))
         
-        print(f"\033[{COLORS.TOC_BORDER}m├{'─' * (width - 2)}┤\033[0m")
+        separator_line = "├" + "─" * (width - 2) + "┤"
+        console.print(Text(separator_line, style=COLORS.TOC_BORDER))
         
         help_text = "Press any key to return to reading"
         help_padding = (width - 2 - len(help_text)) // 2
-        print(f"\033[{COLORS.TOC_BORDER}m│{' ' * help_padding}{help_text}{' ' * (width - 2 - len(help_text) - help_padding)}│\033[0m")
-        print(f"\033[{COLORS.TOC_BORDER}m└{'─' * (width - 2)}┘\033[0m")
+        help_line = "│" + " " * help_padding + help_text + " " * (width - 2 - len(help_text) - help_padding) + "│"
+        console.print(Text(help_line, style="dim"))
         
-        sys.stdout.flush()
+        bottom_line = "└" + "─" * (width - 2) + "┘"
+        console.print(Text(bottom_line, style=COLORS.TOC_BORDER))
         
     except Exception as e:
         # Fallback to simple display
-        print(f"\nTable of Contents (Error in rendering: {e})")
-        print("─" * 50)
+        console = Console()
+        console.clear()
+        console.print(f"\nTable of Contents (Error in rendering: {e})", style="red")
+        console.print("─" * 50)
+        chapter_titles = content_parser.extract_chapter_titles(reader.chapters)
         for i, (chapter_idx, title) in enumerate(chapter_titles):
             marker = "▶ " if i == selected_chapter_idx else "  "
-            print(f"{marker}{title}")
-        print("─" * 50)
-        print("Use ↑↓ to navigate, Enter to jump, Esc to close")
-        sys.stdout.flush()
+            style = "bold magenta" if i == selected_chapter_idx else "white"
+            console.print(f"{marker}{title}", style=style)
+        console.print("─" * 50)
+        console.print("Use ↑↓ to navigate, Enter to jump, Esc to close", style="yellow")

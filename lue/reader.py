@@ -9,7 +9,7 @@ from rich.console import Console
 from rich.text import Text
 import platformdirs
 
-from . import config, content_parser, progress_manager, audio, ui, input_handler, ai_assistant
+from . import config, content_parser, progress_manager, audio, ui, ai_assistant
 from .tts.base import TTSBase
 
 class Lue:
@@ -112,14 +112,9 @@ class Lue:
         self.mouse_sequence_active = False
         self.resize_anchor = None
         
-        # Table of Contents state
-        self.toc_visible = False
-        self.toc_selected_chapter = self.chapter_idx
-        
-        # AI Assistant state
-        self.ai_visible = False
+        # Legacy UI state variables removed - handled by Textual interface
+        # Table of Contents and AI Assistant state now managed by Textual modals
         self.ai_conversation = []
-        self.ai_input_buffer = ""
         self.ai_waiting_response = False
         self.ai_current_context = ""
         
@@ -718,77 +713,24 @@ class Lue:
                 await audio.play_from_current_position(self)
 
     def _toggle_table_of_contents(self):
-        """Toggle the table of contents display."""
-        self.toc_visible = not self.toc_visible
-        if self.toc_visible:
-            self.toc_selected_chapter = self.chapter_idx
-            ui.render_table_of_contents(self, self.toc_selected_chapter)
-        else:
-            # Return to normal reading view
-            ui.render_book_content(self)
+        """Legacy method - TOC now handled by Textual interface."""
+        pass
 
     def _navigate_toc_up(self):
-        """Navigate up in the table of contents."""
-        if self.toc_visible:
-            from . import content_parser
-            chapter_titles = content_parser.extract_chapter_titles(self.chapters)
-            if self.toc_selected_chapter > 0:
-                self.toc_selected_chapter -= 1
-            ui.render_table_of_contents(self, self.toc_selected_chapter)
+        """Legacy method - TOC navigation now handled by Textual interface."""
+        pass
 
     def _navigate_toc_down(self):
-        """Navigate down in the table of contents."""
-        if self.toc_visible:
-            from . import content_parser
-            chapter_titles = content_parser.extract_chapter_titles(self.chapters)
-            if self.toc_selected_chapter < len(chapter_titles) - 1:
-                self.toc_selected_chapter += 1
-            ui.render_table_of_contents(self, self.toc_selected_chapter)
+        """Legacy method - TOC navigation now handled by Textual interface."""
+        pass
 
     def _jump_to_selected_chapter(self):
-        """Jump to the currently selected chapter in TOC."""
-        if self.toc_visible:
-            # Get the actual chapter index from the chapter titles list
-            from . import content_parser
-            chapter_titles = content_parser.extract_chapter_titles(self.chapters)
-            
-            if 0 <= self.toc_selected_chapter < len(chapter_titles):
-                actual_chapter_idx, _ = chapter_titles[self.toc_selected_chapter]
-                
-                # Jump to the beginning of the selected chapter
-                self.chapter_idx = actual_chapter_idx
-                self.paragraph_idx = 0
-                self.sentence_idx = 0
-                self.ui_chapter_idx = self.chapter_idx
-                self.ui_paragraph_idx = self.paragraph_idx
-                self.ui_sentence_idx = self.sentence_idx
-                
-                # Close TOC and return to reading
-                self.toc_visible = False
-                
-                # Scroll to the new position
-                self._scroll_to_position_immediate(self.chapter_idx, self.paragraph_idx, self.sentence_idx)
-                
-                # Save progress
-                self._save_extended_progress(sync_audio_position=True)
-                
-                # Restart audio from new position if not paused
-                if not self.is_paused and self.running:
-                    asyncio.create_task(self._restart_audio_after_navigation())
+        """Legacy method - chapter jumping now handled by Textual interface."""
+        pass
 
     def _toggle_ai_assistant(self):
-        """Toggle the AI assistant display."""
-        self.ai_visible = not self.ai_visible
-        if self.ai_visible:
-            # Get current context when opening AI assistant
-            self._update_ai_context()
-            ui.render_ai_assistant(self)
-        else:
-            # Reset screen initialization flag for next time
-            if hasattr(self, '_ai_screen_initialized'):
-                self._ai_screen_initialized = False
-            # Return to normal reading view - the UI will automatically render normally
-            pass
+        """Legacy method - AI assistant now handled by Textual interface."""
+        pass
 
     def _update_ai_context(self):
         """Update the AI context with current reading position."""
@@ -801,43 +743,16 @@ class Lue:
             self.ai_current_context = f"Error getting context: {str(e)}"
 
     async def _send_ai_message(self):
-        """Send message to AI assistant."""
-        if not self.ai_input_buffer.strip():
-            return
-        
-        question = self.ai_input_buffer.strip()
-        self.ai_input_buffer = ""
-        
-        # Add user message to conversation
-        self.ai_conversation.append(("user", question))
-        self.ai_waiting_response = True
-        
-        # Update display to show waiting state
-        ui.render_ai_assistant(self)
-        
-        try:
-            from . import ai_assistant
-            response = await ai_assistant.ask_ai_question(self, question)
-            self.ai_conversation.append(("ai", response))
-        except Exception as e:
-            error_msg = f"AI回答时出错: {str(e)}"
-            self.ai_conversation.append(("ai", error_msg))
-        finally:
-            self.ai_waiting_response = False
-            # Reset screen flag to force full refresh after response
-            self._ai_screen_initialized = False
-            # Update display with response
-            ui.render_ai_assistant(self)
+        """Legacy method - AI messaging now handled by Textual interface."""
+        pass
 
     def _clear_ai_input(self):
-        """Clear AI input buffer."""
-        self.ai_input_buffer = ""
-        ui.render_ai_assistant(self, force_clear=False)
+        """Legacy method - AI input now handled by Textual interface."""
+        pass
 
     def _update_ai_display(self):
-        """Update AI assistant display without clearing screen to prevent flicker."""
-        if self.ai_visible:
-            ui.render_ai_assistant(self, force_clear=False)
+        """Legacy method - AI display now handled by Textual interface."""
+        pass
 
     def _handle_page_scroll_immediate(self, direction):
         self.auto_scroll_enabled = False
@@ -921,8 +836,8 @@ class Lue:
                     self._save_extended_progress()
                     last_progress_save_time = current_time
                 
-                # Always render on a fixed interval to catch all state changes
-                await ui.display_ui(self)
+                # Legacy UI rendering removed - use Textual interface instead
+                # await ui.display_ui(self)
                 last_update_time = current_time
                 
                 await asyncio.sleep(self.ui_update_interval)
@@ -989,7 +904,8 @@ class Lue:
 
     async def run(self):
         self.loop = asyncio.get_running_loop()
-        self.loop.add_reader(sys.stdin.fileno(), input_handler.process_input, self)
+        # Legacy input handler removed - use Textual interface instead
+        # self.loop.add_reader(sys.stdin.fileno(), input_handler.process_input, self)
         
         # Enable mouse reporting for drag events (button motion only)
         sys.stdout.write('\033[?1002h')  # Enable button motion events (drag only)
@@ -1123,11 +1039,8 @@ class Lue:
             elif cmd == 'ai_update_display':
                 self._update_ai_display()
             elif cmd == 'refresh_ui':
-                # Force immediate UI refresh to reflect state changes
-                # Reset cached render state so display_ui does not early-return
-                self.last_rendered_state = None
-                self.last_terminal_size = None
-                await ui.display_ui(self)
+                # Legacy UI rendering removed - use Textual interface instead
+                pass
             elif 'next' in cmd or 'prev' in cmd:
                 self._handle_navigation_immediate(cmd)
                 self.pending_restart_task = asyncio.create_task(self._restart_audio_after_navigation())

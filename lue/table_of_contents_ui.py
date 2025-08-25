@@ -27,8 +27,10 @@ def render_table_of_contents(reader, selected_chapter_idx=0):
         # Extract chapter titles
         chapter_titles = content_parser.extract_chapter_titles(reader.chapters)
 
-        # Clear screen
+        # Clear screen and add top padding to move interface down
         console.clear()
+        console.print("")  # Add one blank line at top
+        console.print("")  # Add second blank line to ensure title border is fully visible
 
         # Create title
         title = "TABLE OF CONTENTS"
@@ -42,8 +44,8 @@ def render_table_of_contents(reader, selected_chapter_idx=0):
         console.print(Text(title_line, style=f"{COLORS.TOC_BORDER} {COLORS.TOC_TITLE}"))
         console.print(Text(separator_line, style=COLORS.TOC_BORDER))
 
-        # Calculate available space for chapters
-        available_height = height - 8  # Reserve space for title, controls, and borders
+        # Calculate available space for chapters (accounting for top padding)
+        available_height = height - 10  # Reserve space for title, controls, borders, and top padding (2 lines)
         start_idx = max(0, selected_chapter_idx - available_height // 2)
         end_idx = min(len(chapter_titles), start_idx + available_height)
 
@@ -61,11 +63,7 @@ def render_table_of_contents(reader, selected_chapter_idx=0):
         for i in range(start_idx, end_idx):
             chapter_idx, title = chapter_titles[i]
 
-            # Truncate title if too long
-            max_title_width = width - 10  # Reserve space for borders and indicators
-            title = truncate_text(title, max_title_width)
-
-            # Determine styling
+            # Determine styling and indicator first
             if i == selected_chapter_idx:
                 # Selected chapter
                 indicator = "▶ "
@@ -79,8 +77,13 @@ def render_table_of_contents(reader, selected_chapter_idx=0):
                 indicator = "  "
                 style = COLORS.TOC_NORMAL_CHAPTER
 
+            # Calculate available space for title (accounting for borders and indicator)
+            available_space = width - 4 - len(indicator)  # 2 for borders + 2 for padding + indicator length
+            title = truncate_text(title, available_space)
+            
             chapter_text = f"{indicator}{title}"
-            padding = width - 2 - len(chapter_text)
+            # Ensure the line fits exactly within the border
+            padding = max(0, width - 2 - len(chapter_text))
             full_line = "│" + chapter_text + " " * padding + "│"
 
             console.print(Text(full_line, style=style))
@@ -96,23 +99,36 @@ def render_table_of_contents(reader, selected_chapter_idx=0):
         console.print(Text(separator_line, style=COLORS.TOC_BORDER))
 
         controls = "[↑↓] Navigate   [Enter] Jump to Chapter   [Esc/c] Close   [q] Quit"
-        controls_padding = (width - 2 - len(controls)) // 2
-        controls_line = "│" + " " * controls_padding + controls + " " * (width - 2 - len(controls) - controls_padding) + "│"
+        # Truncate controls if terminal is too narrow
+        max_controls_width = width - 4
+        if len(controls) > max_controls_width:
+            controls = "[↑↓] Navigate   [Enter] Jump   [Esc] Close"
+        controls = truncate_text(controls, max_controls_width)
+        controls_padding = max(0, (width - 2 - len(controls)) // 2)
+        remaining_controls_padding = max(0, width - 2 - len(controls) - controls_padding)
+        controls_line = "│" + " " * controls_padding + controls + " " * remaining_controls_padding + "│"
         console.print(Text(controls_line, style=COLORS.TOC_CONTROLS))
 
         # Current position info
-        current_info = f"Current: {chapter_titles[reader.chapter_idx][1]} (Chapter {reader.chapter_idx + 1}/{len(chapter_titles)})"
-        current_info = truncate_text(current_info, width - 4)
-        info_padding = (width - 2 - len(current_info)) // 2
-        info_line = "│" + " " * info_padding + current_info + " " * (width - 2 - len(current_info) - info_padding) + "│"
+        current_chapter_title = chapter_titles[reader.chapter_idx][1] if reader.chapter_idx < len(chapter_titles) else "Unknown"
+        current_info = f"Current: {current_chapter_title} (Chapter {reader.chapter_idx + 1}/{len(chapter_titles)})"
+        # Ensure the info fits within borders with proper padding
+        max_info_width = width - 4  # Account for borders and minimum padding
+        current_info = truncate_text(current_info, max_info_width)
+        info_padding = max(0, (width - 2 - len(current_info)) // 2)
+        remaining_padding = max(0, width - 2 - len(current_info) - info_padding)
+        info_line = "│" + " " * info_padding + current_info + " " * remaining_padding + "│"
         console.print(Text(info_line, style="white"))
 
         separator_line = create_separator_line(width)
         console.print(Text(separator_line, style=COLORS.TOC_BORDER))
 
         help_text = "Press any key to return to reading"
-        help_padding = (width - 2 - len(help_text)) // 2
-        help_line = "│" + " " * help_padding + help_text + " " * (width - 2 - len(help_text) - help_padding) + "│"
+        max_help_width = width - 4
+        help_text = truncate_text(help_text, max_help_width)
+        help_padding = max(0, (width - 2 - len(help_text)) // 2)
+        remaining_help_padding = max(0, width - 2 - len(help_text) - help_padding)
+        help_line = "│" + " " * help_padding + help_text + " " * remaining_help_padding + "│"
         console.print(Text(help_line, style="dim"))
 
         bottom_line = "└" + "─" * (width - 2) + "┘"

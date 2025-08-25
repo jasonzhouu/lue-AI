@@ -729,14 +729,20 @@ class Lue:
 
     def _navigate_toc_up(self):
         """Navigate up in the table of contents."""
-        if self.toc_visible and self.toc_selected_chapter > 0:
-            self.toc_selected_chapter -= 1
+        if self.toc_visible:
+            from . import content_parser
+            chapter_titles = content_parser.extract_chapter_titles(self.chapters)
+            if self.toc_selected_chapter > 0:
+                self.toc_selected_chapter -= 1
             ui.render_table_of_contents(self, self.toc_selected_chapter)
 
     def _navigate_toc_down(self):
         """Navigate down in the table of contents."""
-        if self.toc_visible and self.toc_selected_chapter < len(self.chapters) - 1:
-            self.toc_selected_chapter += 1
+        if self.toc_visible:
+            from . import content_parser
+            chapter_titles = content_parser.extract_chapter_titles(self.chapters)
+            if self.toc_selected_chapter < len(chapter_titles) - 1:
+                self.toc_selected_chapter += 1
             ui.render_table_of_contents(self, self.toc_selected_chapter)
 
     def _jump_to_selected_chapter(self):
@@ -826,12 +832,12 @@ class Lue:
     def _clear_ai_input(self):
         """Clear AI input buffer."""
         self.ai_input_buffer = ""
-        ui.render_ai_assistant(self)
+        ui.render_ai_assistant(self, force_clear=False)
 
     def _update_ai_display(self):
-        """Update AI assistant display."""
+        """Update AI assistant display without clearing screen to prevent flicker."""
         if self.ai_visible:
-            ui.render_ai_assistant(self)
+            ui.render_ai_assistant(self, force_clear=False)
 
     def _handle_page_scroll_immediate(self, direction):
         self.auto_scroll_enabled = False

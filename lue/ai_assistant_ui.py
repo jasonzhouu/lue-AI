@@ -75,16 +75,29 @@ def format_conversation_message(role, message, width, prefix_added=False):
     return message_lines
 
 
-def render_ai_assistant(reader):
+def render_ai_assistant(reader, force_clear=True):
     """
     Render a full-screen AI assistant overlay.
+    
+    Args:
+        reader: The reader instance
+        force_clear: Whether to clear the screen (False for input updates to reduce flicker)
     """
     try:
         width, height = get_terminal_size()
         console = Console()
 
-        # Always clear screen to prevent content residue
-        console.clear()
+        # Clear screen only when necessary to prevent flickering
+        if force_clear:
+            console.clear()
+        else:
+            # When not clearing, move cursor to top and clear from cursor down
+            # This ensures title is visible without full screen flicker
+            console.print("\033[H\033[J", end="")
+        
+        # Add some top padding to move the interface down and utilize bottom space
+        console.print("")  # Add one blank line at top
+        console.print("")  # Add second blank line to ensure title border is fully visible
 
         # Create title
         title = "AI Assistant"
@@ -96,9 +109,9 @@ def render_ai_assistant(reader):
         title_line = "│" + title_content + "│"
         separator_line = create_separator_line(width)
 
-        console.print(Text(border_line, style=COLORS.AI_BORDER))
-        console.print(Text(title_line, style=f"{COLORS.AI_BORDER} {COLORS.AI_TITLE}"))
-        console.print(Text(separator_line, style=COLORS.AI_BORDER))
+        console.print(Text(border_line, style=COLORS.TOC_BORDER))
+        console.print(Text(title_line, style=f"{COLORS.TOC_BORDER} {COLORS.AI_TITLE}"))
+        console.print(Text(separator_line, style=COLORS.TOC_BORDER))
 
         # Get current sentence and context
         current_sentence, chapter_title = get_current_context(reader)
@@ -125,36 +138,44 @@ def render_ai_assistant(reader):
 
         # Separator
         separator_line = create_separator_line(width)
-        console.print(Text(separator_line, style=COLORS.AI_BORDER))
+        console.print(Text(separator_line, style=COLORS.TOC_BORDER))
 
-        # Calculate available space for conversation
-        # Count actual used lines dynamically:
+        # Calculate available space for conversation more accurately
+        # Fixed UI elements that will be rendered:
         # - Top border (1) + title (1) + separator (1) = 3
-        # - Current sentence section: title (1) + sentence lines (up to 2) = up to 3
-        # - Chapter info (1 if exists) = 0 or 1
+        # - Current sentence title (1) = 1
         # - Separator after context (1) = 1
         # - Input section: separator (1) + input (1) + separator (1) + controls (1) = 4
         # - Bottom border (1) = 1
-        # - Suggestions (if no conversation): title (1) + suggestions (up to 2) = up to 3
+        # Total fixed: 11 lines
 
-        base_used_lines = 3 + 1 + 1 + 4 + 1  # 10 lines minimum
+        fixed_lines = 11
 
-        # Add lines for current sentence display (up to 2 lines)
+        # Variable elements that will be rendered:
+        # - Current sentence display (up to 2 lines)
         sentence_lines_count = 0
         if current_sentence:
             sentence_lines = wrap_text_to_lines(current_sentence, width - 8)
             sentence_lines_count = min(len(sentence_lines), 2)
 
-        # Add line for chapter info if it exists
+        # - Chapter info (1 if exists)
         chapter_line_count = 1 if chapter_title else 0
 
-        # Add lines for suggestions if no conversation exists
+        # - Suggestions (if no conversation): title (1) + suggestions (up to 2) = 3
         suggestions_lines_count = 0
         if not reader.ai_conversation and not reader.ai_waiting_response:
-            suggestions_lines_count = 3  # title + 2 suggestion lines
+            suggestions_lines_count = 3
 
-        total_used_lines = base_used_lines + sentence_lines_count + chapter_line_count + suggestions_lines_count
-        available_height = max(3, height - total_used_lines)
+        # Calculate total lines that will be used (including the top padding lines we added)
+        total_used_lines = fixed_lines + sentence_lines_count + chapter_line_count + suggestions_lines_count + 2  # +2 for top padding
+        
+        # Available height for conversation (ensure minimum of 3 lines)
+        # Use more aggressive height calculation to fill the terminal better
+        available_height = max(3, height - total_used_lines + 2)  # +2 to use more space
+        
+        # Ensure we don't exceed terminal height but be less conservative
+        max_available = height - (fixed_lines + sentence_lines_count + chapter_line_count + suggestions_lines_count + 2)
+        available_height = min(available_height, max(3, max_available))
 
         # Show conversation history
         conversation_lines = []
@@ -181,11 +202,11 @@ def render_ai_assistant(reader):
         # Fill remaining conversation space
         for _ in range(available_height - displayed_lines):
             empty_line = create_border_line(width)
-            console.print(Text(empty_line, style=COLORS.AI_BORDER))
+            console.print(Text(empty_line, style=COLORS.TOC_BORDER))
 
         # Input section
         separator_line = create_separator_line(width)
-        console.print(Text(separator_line, style=COLORS.AI_BORDER))
+        console.print(Text(separator_line, style=COLORS.TOC_BORDER))
 
         # Show waiting indicator or input prompt
         if reader.ai_waiting_response:
@@ -203,7 +224,7 @@ def render_ai_assistant(reader):
 
         # Controls
         separator_line = create_separator_line(width)
-        console.print(Text(separator_line, style=COLORS.AI_BORDER))
+        console.print(Text(separator_line, style=COLORS.TOC_BORDER))
 
         controls = "[Enter] Send Question   [Esc/?] Close   [Ctrl+U] Clear Input"
         if len(controls) > width - 4:
@@ -232,7 +253,7 @@ def render_ai_assistant(reader):
 
         # Bottom border
         bottom_line = "└" + "─" * (width - 2) + "┘"
-        console.print(Text(bottom_line, style=COLORS.AI_BORDER))
+        console.print(Text(bottom_line, style=COLORS.TOC_BORDER))
 
     except Exception as e:
         # Fallback to simple display

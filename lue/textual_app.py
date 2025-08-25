@@ -52,21 +52,28 @@ class ReaderWidget(Static):
         self.update_tts_status()
         
     def update_content_display(self) -> None:
-        """Update the main content display."""
+        """Update the main content display with proper sentence highlighting."""
         try:
             content_widget = self.query_one("#content-display", Static)
             
-            # Get terminal height for proper content sizing
-            from .ui import get_terminal_size
-            _, height = get_terminal_size()
-            display_height = max(10, height - 6)  # Reserve space for progress bar and footer
+            # Update UI position to match current position
+            self.lue.ui_chapter_idx = self.lue.chapter_idx
+            self.lue.ui_paragraph_idx = self.lue.paragraph_idx
+            self.lue.ui_sentence_idx = self.lue.sentence_idx
             
-            # Get current content from lue instance
-            if hasattr(self.lue, 'get_current_display_content'):
-                display_content = self.lue.get_current_display_content(height=display_height)
-            else:
-                # Fallback to basic content display
-                display_content = self._get_fallback_content()
+            # Get terminal height for proper content sizing
+            from .ui import get_terminal_size, get_visible_content
+            _, height = get_terminal_size()
+            
+            # Use the original UI's get_visible_content which handles highlighting
+            visible_lines = get_visible_content(self.lue)
+            
+            # Convert visible lines to a single Text object
+            display_content = Text()
+            for i, line in enumerate(visible_lines):
+                if i > 0:
+                    display_content.append("\n")
+                display_content.append(line)
                     
             content_widget.update(display_content)
         except Exception as e:
@@ -473,13 +480,15 @@ class LueApp(App):
         self.lue = lue_reader.Lue(file_path, tts_model, overlap)
         # Add Textual adapter methods to the lue instance
         create_textual_adapter(self.lue)
+        self._tts_initialized = False
+        self._ai_initialized = False
         
     def compose(self) -> ComposeResult:
         """Create the main application layout."""
         yield ReaderWidget(self.lue)
         yield Footer()
         
-    def on_mount(self) -> None:
+    async def on_mount(self) -> None:
         """Initialize the application."""
         reader_widget = self.query_one(ReaderWidget)
         reader_widget.current_position = (
@@ -487,6 +496,9 @@ class LueApp(App):
             getattr(self.lue, 'paragraph_idx', 0),
             getattr(self.lue, 'sentence_idx', 0)
         )
+        
+        # Initialize TTS and AI in background
+        asyncio.create_task(self._initialize_services())
         
     # Navigation actions
     def action_prev_paragraph(self) -> None:
@@ -619,6 +631,11 @@ class LueApp(App):
             else:
                 # Direct toggle fallback
                 self.lue.is_paused = not getattr(self.lue, 'is_paused', True)
+            
+            # Handle audio playback based on pause state
+            if self._tts_initialized:
+                asyncio.create_task(self._handle_audio_state_change())
+            
             self._update_tts_status()
         except Exception:
             pass
@@ -654,7 +671,7 @@ class LueApp(App):
         self.push_screen(AIAssistantModal(self.lue), handle_ai_result)
         
     def _update_position(self) -> None:
-        """Update the reader widget position."""
+        """Update the reader widget position and restart audio if needed."""
         try:
             reader_widget = self.query_one(ReaderWidget)
             reader_widget.current_position = (
@@ -667,6 +684,10 @@ class LueApp(App):
                 self.lue.ui_chapter_idx = self.lue.chapter_idx
                 self.lue.ui_paragraph_idx = self.lue.paragraph_idx
                 self.lue.ui_sentence_idx = self.lue.sentence_idx
+            
+            # Restart audio after navigation if TTS is active
+            if self._tts_initialized:
+                asyncio.create_task(self._handle_navigation_audio_restart())
         except Exception:
             pass
             
@@ -675,6 +696,59 @@ class LueApp(App):
         try:
             reader_widget = self.query_one(ReaderWidget)
             reader_widget.update_tts_status()
+        except Exception:
+            pass
+
+
+    async def _initialize_services(self) -> None:
+        """Initialize TTS and AI services in background."""
+        try:
+            # Set up the event loop for the lue instance
+            self.lue.loop = asyncio.get_event_loop()
+            
+            # Initialize TTS
+            if not self._tts_initialized:
+                self._tts_initialized = await self.lue.initialize_tts()
+                
+            # Initialize AI Assistant
+            if not self._ai_initialized:
+                self._ai_initialized = await self.lue.initialize_ai_assistant()
+                
+            # Start audio playback if TTS is available and not paused
+            if self._tts_initialized and not self.lue.is_paused:
+                from . import audio
+                await audio.play_from_current_position(self.lue)
+                
+            # Update TTS status after initialization
+            self._update_tts_status()
+        except Exception as e:
+            # Log error but don't crash the app
+            pass
+
+
+    async def _handle_audio_state_change(self) -> None:
+        """Handle audio playback when pause state changes."""
+        try:
+            from . import audio
+            
+            if self.lue.is_paused:
+                # Stop audio when paused
+                await audio.stop_and_clear_audio(self.lue)
+            else:
+                # Start audio when resumed
+                if self._tts_initialized and self.lue.tts_model:
+                    await audio.play_from_current_position(self.lue)
+        except Exception:
+            pass
+    
+    async def _handle_navigation_audio_restart(self) -> None:
+        """Restart audio after navigation if not paused."""
+        try:
+            if self._tts_initialized and not self.lue.is_paused and self.lue.tts_model:
+                from . import audio
+                await audio.stop_and_clear_audio(self.lue)
+                await asyncio.sleep(0.1)  # Small delay for cleanup
+                await audio.play_from_current_position(self.lue)
         except Exception:
             pass
 

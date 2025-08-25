@@ -243,71 +243,350 @@ class TextualReaderAdapter:
         except Exception as e:
             return f"Error getting AI response: {str(e)}"
     
-    # Navigation methods that delegate to existing Lue methods
+    # Navigation methods that directly call the navigation logic
     def move_to_prev_paragraph(self) -> None:
         """Move to previous paragraph."""
-        if hasattr(self.lue, '_post_command_sync'):
-            self.lue._post_command_sync('prev_paragraph')
+        try:
+            if hasattr(self.lue, '_handle_navigation_immediate'):
+                self.lue._handle_navigation_immediate('prev_paragraph')
+            else:
+                # Fallback: direct navigation
+                if self.lue.paragraph_idx > 0:
+                    self.lue.paragraph_idx -= 1
+                    self.lue.sentence_idx = 0
+                elif self.lue.chapter_idx > 0:
+                    self.lue.chapter_idx -= 1
+                    self.lue.paragraph_idx = len(self.lue.chapters[self.lue.chapter_idx]) - 1
+                    self.lue.sentence_idx = 0
+                self._update_ui_position()
+        except Exception:
+            pass
     
     def move_to_next_paragraph(self) -> None:
         """Move to next paragraph."""
-        if hasattr(self.lue, '_post_command_sync'):
-            self.lue._post_command_sync('next_paragraph')
+        try:
+            if hasattr(self.lue, '_handle_navigation_immediate'):
+                self.lue._handle_navigation_immediate('next_paragraph')
+            else:
+                # Fallback: direct navigation
+                current_chapter = self.lue.chapters[self.lue.chapter_idx]
+                if self.lue.paragraph_idx < len(current_chapter) - 1:
+                    self.lue.paragraph_idx += 1
+                    self.lue.sentence_idx = 0
+                elif self.lue.chapter_idx < len(self.lue.chapters) - 1:
+                    self.lue.chapter_idx += 1
+                    self.lue.paragraph_idx = 0
+                    self.lue.sentence_idx = 0
+                self._update_ui_position()
+        except Exception:
+            pass
     
     def move_to_prev_sentence(self) -> None:
         """Move to previous sentence."""
-        if hasattr(self.lue, '_post_command_sync'):
-            self.lue._post_command_sync('prev_sentence')
+        try:
+            if hasattr(self.lue, '_handle_navigation_immediate'):
+                self.lue._handle_navigation_immediate('prev_sentence')
+            else:
+                # Fallback: direct navigation
+                from . import content_parser
+                if self.lue.sentence_idx > 0:
+                    self.lue.sentence_idx -= 1
+                else:
+                    # Move to previous paragraph
+                    self.move_to_prev_paragraph()
+                    # Set to last sentence of new paragraph
+                    current_para = self.lue.chapters[self.lue.chapter_idx][self.lue.paragraph_idx]
+                    sentences = content_parser.split_into_sentences(current_para)
+                    self.lue.sentence_idx = max(0, len(sentences) - 1)
+                self._update_ui_position()
+        except Exception:
+            pass
     
     def move_to_next_sentence(self) -> None:
         """Move to next sentence."""
-        if hasattr(self.lue, '_post_command_sync'):
-            self.lue._post_command_sync('next_sentence')
+        try:
+            if hasattr(self.lue, '_handle_navigation_immediate'):
+                self.lue._handle_navigation_immediate('next_sentence')
+            else:
+                # Fallback: direct navigation
+                from . import content_parser
+                current_para = self.lue.chapters[self.lue.chapter_idx][self.lue.paragraph_idx]
+                sentences = content_parser.split_into_sentences(current_para)
+                if self.lue.sentence_idx < len(sentences) - 1:
+                    self.lue.sentence_idx += 1
+                else:
+                    # Move to next paragraph
+                    self.move_to_next_paragraph()
+                self._update_ui_position()
+        except Exception:
+            pass
     
     def scroll_page_up(self) -> None:
         """Scroll page up."""
-        if hasattr(self.lue, '_post_command_sync'):
-            self.lue._post_command_sync('scroll_page_up')
+        try:
+            # Stop auto scroll when manually scrolling
+            self.lue.auto_scroll_enabled = False
+            
+            # Adjust scroll offset
+            from . import ui
+            _, height = ui.get_terminal_size()
+            available_height = max(1, height - 4)
+            self.lue.scroll_offset = max(0, self.lue.scroll_offset - available_height)
+            self.lue.target_scroll_offset = self.lue.scroll_offset
+            
+            # Cancel smooth scroll if active
+            if hasattr(self.lue, 'smooth_scroll_task') and self.lue.smooth_scroll_task and not self.lue.smooth_scroll_task.done():
+                self.lue.smooth_scroll_task.cancel()
+            
+            # Update position tracking
+            self.lue.chapter_idx = getattr(self.lue, 'ui_chapter_idx', self.lue.chapter_idx)
+            self.lue.paragraph_idx = getattr(self.lue, 'ui_paragraph_idx', self.lue.paragraph_idx) 
+            self.lue.sentence_idx = getattr(self.lue, 'ui_sentence_idx', self.lue.sentence_idx)
+            
+            # Save progress
+            if hasattr(self.lue, '_save_extended_progress'):
+                self.lue._save_extended_progress()
+        except Exception:
+            pass
     
     def scroll_page_down(self) -> None:
         """Scroll page down."""
-        if hasattr(self.lue, '_post_command_sync'):
-            self.lue._post_command_sync('scroll_page_down')
+        try:
+            # Stop auto scroll when manually scrolling
+            self.lue.auto_scroll_enabled = False
+            
+            # Adjust scroll offset
+            from . import ui
+            _, height = ui.get_terminal_size()
+            available_height = max(1, height - 4)
+            max_scroll = max(0, len(self.lue.document_lines) - available_height)
+            self.lue.scroll_offset = min(max_scroll, self.lue.scroll_offset + available_height)
+            self.lue.target_scroll_offset = self.lue.scroll_offset
+            
+            # Cancel smooth scroll if active
+            if hasattr(self.lue, 'smooth_scroll_task') and self.lue.smooth_scroll_task and not self.lue.smooth_scroll_task.done():
+                self.lue.smooth_scroll_task.cancel()
+            
+            # Update position tracking
+            self.lue.chapter_idx = getattr(self.lue, 'ui_chapter_idx', self.lue.chapter_idx)
+            self.lue.paragraph_idx = getattr(self.lue, 'ui_paragraph_idx', self.lue.paragraph_idx)
+            self.lue.sentence_idx = getattr(self.lue, 'ui_sentence_idx', self.lue.sentence_idx)
+            
+            # Save progress
+            if hasattr(self.lue, '_save_extended_progress'):
+                self.lue._save_extended_progress()
+        except Exception:
+            pass
     
     def scroll_up(self) -> None:
         """Scroll up."""
-        if hasattr(self.lue, '_post_command_sync'):
-            self.lue._post_command_sync('scroll_up')
+        try:
+            # Use existing method if available
+            if hasattr(self.lue, '_handle_scroll_up_immediate'):
+                self.lue._handle_scroll_up_immediate()
+            else:
+                # Fallback: manual implementation
+                self.lue.auto_scroll_enabled = False
+                self.lue.scroll_offset = max(0, self.lue.scroll_offset - 1)
+                self.lue.target_scroll_offset = self.lue.scroll_offset
+                
+                # Cancel smooth scroll if active
+                if hasattr(self.lue, 'smooth_scroll_task') and self.lue.smooth_scroll_task and not self.lue.smooth_scroll_task.done():
+                    self.lue.smooth_scroll_task.cancel()
+                
+                # Update position tracking
+                self.lue.chapter_idx = getattr(self.lue, 'ui_chapter_idx', self.lue.chapter_idx)
+                self.lue.paragraph_idx = getattr(self.lue, 'ui_paragraph_idx', self.lue.paragraph_idx)
+                self.lue.sentence_idx = getattr(self.lue, 'ui_sentence_idx', self.lue.sentence_idx)
+                
+                # Save progress
+                if hasattr(self.lue, '_save_extended_progress'):
+                    self.lue._save_extended_progress()
+        except Exception:
+            pass
     
     def scroll_down(self) -> None:
         """Scroll down."""
-        if hasattr(self.lue, '_post_command_sync'):
-            self.lue._post_command_sync('scroll_down')
+        try:
+            # Use existing method if available
+            if hasattr(self.lue, '_handle_scroll_down_immediate'):
+                self.lue._handle_scroll_down_immediate()
+            else:
+                # Fallback: manual implementation
+                self.lue.auto_scroll_enabled = False
+                from . import ui
+                _, height = ui.get_terminal_size()
+                available_height = max(1, height - 4)
+                max_scroll = max(0, len(self.lue.document_lines) - available_height)
+                self.lue.scroll_offset = min(max_scroll, self.lue.scroll_offset + 1)
+                self.lue.target_scroll_offset = self.lue.scroll_offset
+                
+                # Cancel smooth scroll if active
+                if hasattr(self.lue, 'smooth_scroll_task') and self.lue.smooth_scroll_task and not self.lue.smooth_scroll_task.done():
+                    self.lue.smooth_scroll_task.cancel()
+                
+                # Update position tracking
+                self.lue.chapter_idx = getattr(self.lue, 'ui_chapter_idx', self.lue.chapter_idx)
+                self.lue.paragraph_idx = getattr(self.lue, 'ui_paragraph_idx', self.lue.paragraph_idx)
+                self.lue.sentence_idx = getattr(self.lue, 'ui_sentence_idx', self.lue.sentence_idx)
+                
+                # Save progress
+                if hasattr(self.lue, '_save_extended_progress'):
+                    self.lue._save_extended_progress()
+        except Exception:
+            pass
     
     def move_to_beginning(self) -> None:
         """Move to beginning of book."""
-        if hasattr(self.lue, '_post_command_sync'):
-            self.lue._post_command_sync('move_to_beginning')
+        try:
+            if hasattr(self.lue, '_handle_move_to_beginning_immediate'):
+                self.lue._handle_move_to_beginning_immediate()
+            else:
+                # Fallback: direct navigation
+                self.lue.chapter_idx = 0
+                self.lue.paragraph_idx = 0
+                self.lue.sentence_idx = 0
+                self.lue.scroll_offset = 0
+                self.lue.target_scroll_offset = 0
+                self._update_ui_position()
+        except Exception:
+            pass
     
     def move_to_end(self) -> None:
         """Move to end of book."""
-        if hasattr(self.lue, '_post_command_sync'):
-            self.lue._post_command_sync('move_to_end')
+        try:
+            if hasattr(self.lue, '_handle_move_to_end_immediate'):
+                self.lue._handle_move_to_end_immediate()
+            else:
+                # Fallback: direct navigation
+                self.lue.chapter_idx = len(self.lue.chapters) - 1
+                self.lue.paragraph_idx = len(self.lue.chapters[self.lue.chapter_idx]) - 1
+                # Get last sentence
+                from . import content_parser
+                current_para = self.lue.chapters[self.lue.chapter_idx][self.lue.paragraph_idx]
+                sentences = content_parser.split_into_sentences(current_para)
+                self.lue.sentence_idx = max(0, len(sentences) - 1)
+                # Scroll to end
+                from . import ui
+                _, height = ui.get_terminal_size()
+                available_height = max(1, height - 4)
+                max_scroll = max(0, len(self.lue.document_lines) - available_height)
+                self.lue.scroll_offset = max_scroll
+                self.lue.target_scroll_offset = max_scroll
+                self._update_ui_position()
+        except Exception:
+            pass
     
     def move_to_top_visible(self) -> None:
         """Move to top visible line."""
-        if hasattr(self.lue, '_post_command_sync'):
-            self.lue._post_command_sync('move_to_top_visible')
+        try:
+            # Find position at top of screen
+            start_line = int(self.lue.scroll_offset)
+            if (hasattr(self.lue, 'line_to_position') and 
+                start_line in self.lue.line_to_position):
+                new_pos = self.lue.line_to_position[start_line]
+                self.lue.chapter_idx, self.lue.paragraph_idx, self.lue.sentence_idx = new_pos
+                self._update_ui_position()
+                
+                # Restart audio after navigation if not paused
+                self._restart_audio_after_navigation()
+        except Exception:
+            pass
     
     def toggle_pause(self) -> None:
         """Toggle TTS pause/resume."""
-        if hasattr(self.lue, '_post_command_sync'):
-            self.lue._post_command_sync('pause')
+        try:
+            self.lue.is_paused = not getattr(self.lue, 'is_paused', True)
+            # Save progress
+            if hasattr(self.lue, '_save_extended_progress'):
+                self.lue._save_extended_progress()
+        except Exception:
+            pass
     
     def toggle_auto_scroll(self) -> None:
         """Toggle auto scroll."""
-        if hasattr(self.lue, '_post_command_sync'):
-            self.lue._post_command_sync('toggle_auto_scroll')
+        try:
+            self.lue.auto_scroll_enabled = not getattr(self.lue, 'auto_scroll_enabled', False)
+            if self.lue.auto_scroll_enabled and hasattr(self.lue, '_scroll_to_position_immediate'):
+                self.lue._scroll_to_position_immediate(self.lue.chapter_idx, self.lue.paragraph_idx, self.lue.sentence_idx)
+            # Save progress
+            if hasattr(self.lue, '_save_extended_progress'):
+                self.lue._save_extended_progress()
+        except Exception:
+            pass
+    
+    def _update_ui_position(self) -> None:
+        """Update UI position tracking."""
+        try:
+            # Update UI state if available
+            if hasattr(self.lue, 'ui_chapter_idx'):
+                self.lue.ui_chapter_idx = self.lue.chapter_idx
+                self.lue.ui_paragraph_idx = self.lue.paragraph_idx
+                self.lue.ui_sentence_idx = self.lue.sentence_idx
+            
+            # Update scroll position if available
+            if hasattr(self.lue, 'position_to_line'):
+                new_pos = (self.lue.chapter_idx, self.lue.paragraph_idx, self.lue.sentence_idx)
+                if new_pos in self.lue.position_to_line:
+                    target_line = self.lue.position_to_line[new_pos]
+                    from . import ui
+                    _, height = ui.get_terminal_size()
+                    available_height = max(1, height - 4)
+                    new_offset = max(0, target_line - available_height // 2)
+                    max_scroll = max(0, len(self.lue.document_lines) - available_height)
+                    self.lue.scroll_offset = min(new_offset, max_scroll)
+                    self.lue.target_scroll_offset = self.lue.scroll_offset
+            
+            # Save progress
+            if hasattr(self.lue, '_save_extended_progress'):
+                self.lue._save_extended_progress(sync_audio_position=True)
+                
+            # Restart audio after navigation if not paused
+            self._restart_audio_after_navigation()
+        except Exception:
+            pass
+    
+    def _restart_audio_after_navigation(self) -> None:
+        """Restart audio after navigation, similar to original implementation."""
+        try:
+            # Kill any existing audio playback first
+            self._kill_audio_immediately()
+            
+            # Only restart if TTS is available and not paused
+            if (hasattr(self.lue, 'tts_model') and self.lue.tts_model and 
+                not getattr(self.lue, 'is_paused', True)):
+                
+                # Use async restart if available
+                if hasattr(self.lue, '_restart_audio_after_navigation'):
+                    import asyncio
+                    if hasattr(self.lue, 'loop') and self.lue.loop:
+                        # Schedule the restart task
+                        if hasattr(self.lue, 'pending_restart_task'):
+                            self.lue.pending_restart_task = asyncio.create_task(self.lue._restart_audio_after_navigation())
+        except Exception:
+            pass
+    
+    def _kill_audio_immediately(self) -> None:
+        """Kill audio playback immediately, similar to original implementation."""
+        try:
+            import subprocess
+            
+            # Kill existing playback processes
+            if hasattr(self.lue, 'playback_processes'):
+                for process in self.lue.playback_processes[:]:
+                    try:
+                        process.kill()
+                    except (ProcessLookupError, AttributeError):
+                        pass
+            
+            # Kill any ffplay processes
+            try:
+                subprocess.run(['pkill', '-f', 'ffplay'], check=False, 
+                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            except (subprocess.CalledProcessError, FileNotFoundError):
+                pass
+        except Exception:
+            pass
 
 
 def create_textual_adapter(lue_instance):

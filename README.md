@@ -25,6 +25,7 @@
 | **📖 Multi-Format Support**             | Support for EPUB, PDF, TXT, DOCX, DOC, HTML, RTF, and Markdown with seamless format detection  |
 | **👄 Modular TTS System**               | Edge TTS (default), Apple TTS (macOS native), Google TTS (Cloud AI), ElevenLabs TTS (AI voices), and Kokoro TTS (local/offline) with extensible architecture |
 | **🌌 Rich Terminal UI**                 | Clean, responsive interface with customizable color themes and full mouse & keyboard support   |
+| **🤖 AI-Assisted Reading**              | Interactive AI assistant to answer questions about your reading content using Google Gemini API |
 | **💾 Smart Persistence**                | Automatic progress saving, state restoration, and cross-session continuity for seamless reading|
 | **🌍 Cross-Platform & Multilingual**    | Full support for macOS, Linux, Windows with 100+ languages and consistent global experience    |
 | **⚡️ Fast Navigation**                  | Intuitive shortcuts, flexible controls, and smooth scrolling for efficient book navigation     |
@@ -169,6 +170,20 @@ export ELEVENLABS_API_KEY="your_api_key_here"
 # ELEVENLABS_API_KEY = "your_api_key_here"
 ```
 
+#### Enable AI Assistant (Optional)
+
+For AI-powered reading assistance using Google Gemini:
+
+```bash
+# 1. Get a Gemini API key from Google AI Studio
+# Visit: https://makersuite.google.com/app/apikey
+
+# 2. Set your API key as an environment variable
+export GEMINI_API_KEY="your_gemini_api_key_here"
+
+# 3. The AI assistant will be available with the ? key during reading
+```
+
 ---
 
 ## 💻 Usage
@@ -217,6 +232,7 @@ lue --help
 | `u` / `n`                               | Scroll up or down by smaller increments for fine-grained position control                      |
 | `y` / `b`                               | Jump directly to the beginning or end of the document for quick navigation                     |
 | `c`                                     | Open table of contents to navigate between chapters                                            |
+| `?`                                     | Open AI assistant to ask questions about the current reading content                           |
 
 </div>
 
@@ -229,6 +245,25 @@ When the table of contents is open (press `c`):
 | `↑` / `↓`                               | Navigate up or down through the chapter list                                                   |
 | `Enter`                                 | Jump to the selected chapter and close the table of contents                                   |
 | `Esc` / `c` / `q`                       | Close the table of contents and return to reading                                              |
+
+### AI Assistant
+
+When the AI assistant is open (press `?`):
+
+| **Key Binding**                         | **Action Description**                                                                         |
+| --------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `Enter`                                 | Send your question to the AI assistant and get an answer about the current content            |
+| `Ctrl+C`                                | Clear the current input text in the assistant                                                  |
+| `Esc`                                   | Close the AI assistant and return to reading                                                   |
+
+The AI assistant automatically uses the currently highlighted sentence as context for your questions. You can ask about:
+- **Content explanation** - "What does this mean?"
+- **Character analysis** - "Who is this character?"
+- **Plot clarification** - "What happened in this scene?"
+- **Thematic discussion** - "What is the main theme here?"
+- **Historical context** - "When did this take place?"
+
+> **📝 Note:** AI assistant requires a `GEMINI_API_KEY` environment variable. See [installation instructions](#enable-ai-assistant-optional) above.
 
 ### Mouse Controls
 

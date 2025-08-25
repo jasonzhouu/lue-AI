@@ -4,6 +4,8 @@ P1 level
 
 - [ ] 在 table of contents UI 中，第一次点击上下按钮没有效果，而且最后选中的章节不是当前选中的章节，而是他下面的一个章节。
 
+- [ ] 在 AI Assistant 的界面，当我退出这个界面，然后移动到下一句的时候，然后重新打开 AI Assistant 的界面，这时候显示的 Current Sentence 还是是现在的这个 sentence，但是和 AI 的交互的内容还是跟之前的那句话相关的。 
+
 
 P2 level
 - [ ] 在 Table of contents 页面里面，点击ESC按键不会关闭TOC界面，但是点击C按键会。

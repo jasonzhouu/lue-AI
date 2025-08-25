@@ -16,7 +16,14 @@ def process_input(reader):
             if reader.ai_visible:
                 # When AI overlay is visible, treat ESC as potential escape/mouse sequence first.
                 if data == '\x1b':
-                    # Start escape-sequence buffering (mouse/arrow keys)
+                    # Peek for more input: if none within 10ms, treat as standalone ESC and close AI
+                    if not select.select([sys.stdin], [], [], 0.01)[0]:
+                        reader.mouse_sequence_buffer = ''
+                        reader.mouse_sequence_active = False
+                        reader.ai_visible = False
+                        reader.loop.call_soon_threadsafe(reader._post_command_sync, 'refresh_ui')
+                        return
+                    # Otherwise start escape-sequence buffering (mouse/arrow keys)
                     reader.mouse_sequence_buffer = data
                     reader.mouse_sequence_active = True
                     return

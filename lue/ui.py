@@ -662,20 +662,55 @@ def render_ai_assistant(reader):
         console.print(Text(title_line, style=f"{COLORS.AI_BORDER} {COLORS.AI_TITLE}"))
         console.print(Text(separator_line, style=COLORS.AI_BORDER))
         
-        # Show current context
-        context_text = reader.ai_current_context if reader.ai_current_context else "Getting current reading context..."
-        context_lines = context_text.split('\n')
+        # Get current sentence directly
+        try:
+            from . import content_parser
+            current_chapter = reader.chapters[reader.ui_chapter_idx]
+            current_paragraph = current_chapter[reader.ui_paragraph_idx]
+            sentences = content_parser.split_into_sentences(current_paragraph)
+            current_sentence = sentences[reader.ui_sentence_idx] if reader.ui_sentence_idx < len(sentences) else ""
+            
+            # Get chapter title if available
+            chapter_titles = content_parser.extract_chapter_titles(reader.chapters)
+            chapter_title = ""
+            for idx, title in chapter_titles:
+                if idx == reader.ui_chapter_idx:
+                    chapter_title = title
+                    break
+        except (IndexError, AttributeError):
+            current_sentence = "Unable to get current sentence"
+            chapter_title = ""
         
-        # Print context section
-        context_title = "Current Context:"
-        context_title_line = "│ " + context_title + " " * (width - 4 - len(context_title)) + " │"
-        console.print(Text(context_title_line, style=COLORS.AI_CONTEXT))
+        # Print current sentence section (highlighted)
+        sentence_title = "Current Highlighted Sentence:"
+        sentence_title_line = "│ " + sentence_title + " " * (width - 4 - len(sentence_title)) + " │"
+        console.print(Text(sentence_title_line, style="bold yellow"))
         
-        for line in context_lines[:3]:  # Show max 3 lines of context
-            if len(line) > width - 6:
-                line = line[:width - 9] + "..."
-            context_line = "│ " + line + " " * (width - 4 - len(line)) + " │"
-            console.print(Text(context_line, style=COLORS.AI_CONTEXT))
+        # Display the current sentence with word wrapping
+        if current_sentence:
+            sentence_words = current_sentence.split()
+            sentence_lines = []
+            current_line = ""
+            
+            for word in sentence_words:
+                if len(current_line + word) <= width - 8:
+                    current_line += word + " "
+                else:
+                    if current_line.strip():
+                        sentence_lines.append(current_line.strip())
+                    current_line = word + " "
+            
+            if current_line.strip():
+                sentence_lines.append(current_line.strip())
+            
+            for line in sentence_lines[:2]:  # Show max 2 lines for sentence
+                sentence_line = "│ \"" + line + "\" " + " " * (width - 6 - len(line)) + " │"
+                console.print(Text(sentence_line, style="bright_white"))
+        
+        # Show chapter info if available
+        if chapter_title:
+            chapter_line = "│ Chapter: " + chapter_title + " " * (width - 12 - len(chapter_title)) + " │"
+            console.print(Text(chapter_line, style=COLORS.AI_CONTEXT))
         
         # Separator
         separator_line = "├" + "─" * (width - 2) + "┤"
@@ -691,21 +726,41 @@ def render_ai_assistant(reader):
             prefix = "User: " if role == "user" else "AI: "
             style = COLORS.AI_USER_MESSAGE if role == "user" else COLORS.AI_AI_MESSAGE
             
-            # Split message into lines that fit
+            # Split message into lines that fit, handling newlines properly
             message_lines = []
-            words = message.split(' ')
-            current_line = prefix
+            # First split by actual newlines in the message
+            paragraphs = message.split('\n')
             
-            for word in words:
-                if len(current_line + word) <= width - 6:
-                    current_line += word + " "
+            for para_idx, paragraph in enumerate(paragraphs):
+                if para_idx == 0:
+                    # First paragraph gets the prefix
+                    words = paragraph.split(' ')
+                    current_line = prefix
                 else:
-                    if current_line.strip():
-                        message_lines.append(current_line.strip())
-                    current_line = "    " + word + " "  # Indent continuation lines
-            
-            if current_line.strip():
-                message_lines.append(current_line.strip())
+                    # Subsequent paragraphs are indented
+                    words = paragraph.split(' ') if paragraph.strip() else ['']
+                    current_line = "    "
+                
+                for word in words:
+                    if not word and para_idx > 0:  # Empty paragraph (newline)
+                        if current_line.strip():
+                            message_lines.append(current_line.rstrip())
+                        message_lines.append("    ")  # Empty line
+                        current_line = "    "
+                        continue
+                        
+                    test_line = current_line + word + " "
+                    if len(test_line) <= width - 6:
+                        current_line = test_line
+                    else:
+                        if current_line.strip():
+                            message_lines.append(current_line.rstrip())
+                        # Continuation lines get extra indentation
+                        indent = "    " if para_idx == 0 else "        "
+                        current_line = indent + word + " "
+                
+                if current_line.strip():
+                    message_lines.append(current_line.rstrip())
             
             for line in message_lines:
                 conversation_lines.append((line, style))
@@ -751,9 +806,9 @@ def render_ai_assistant(reader):
         separator_line = "├" + "─" * (width - 2) + "┤"
         console.print(Text(separator_line, style=COLORS.AI_BORDER))
         
-        controls = "[Enter] Send Question   [Esc/?] Close   [Ctrl+C] Clear Input   [q] Quit Program"
+        controls = "[Enter] Send Question   [Esc/?] Close   [Ctrl+C] Clear Input"
         if len(controls) > width - 4:
-            controls = "[Enter] Send   [Esc] Close   [q] Quit"
+            controls = "[Enter] Send   [Esc] Close   [Ctrl+C] Clear"
         controls_padding = (width - 2 - len(controls)) // 2
         controls_line = "│" + " " * controls_padding + controls + " " * (width - 2 - len(controls) - controls_padding) + "│"
         console.print(Text(controls_line, style=COLORS.AI_CONTROLS))

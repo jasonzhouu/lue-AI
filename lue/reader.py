@@ -789,7 +789,7 @@ class Lue:
             context = ai_assistant.ai_assistant._get_current_context(self)
             self.ai_current_context = context
         except Exception as e:
-            self.ai_current_context = f"获取上下文时出错: {str(e)}"
+            self.ai_current_context = f"Error getting context: {str(e)}"
 
     async def _send_ai_message(self):
         """Send message to AI assistant."""

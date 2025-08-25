@@ -2,12 +2,11 @@
 
 P1 level
 
-- [ ] AI assitant UI中，每次点击屏幕，都会输入文字。
-
-- [ ] 在 table of contents UI 中，第一次点击上下按钮没有效果
+- [ ] 在 table of contents UI 中，第一次点击上下按钮没有效果，而且最后选中的章节不是当前选中的章节，而是他下面的一个章节。
 
 
 P2 level
+- [ ] 在 Table of contents 页面里面，点击ESC按键不会关闭TOC界面，但是点击C按键会。
 - [ ] 在reader界面中，TTS每读完一个句子，屏幕都会闪烁一次。
 - [ ] AI assitant UI中每输入一个文字，界面就会闪烁一次。
 
@@ -26,3 +25,5 @@ DONE:
 - [*] AI assitant UI和table of contents UI界面中esc键没有效果
 
 - [*] 在 Table of contents 页面里面，我输入上下按键也会把这个界面给关掉。 
+
+- [x] AI assitant UI中，每次点击屏幕，都会关闭AI assitant UI界面。

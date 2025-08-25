@@ -14,11 +14,37 @@ def process_input(reader):
             
             # Handle AI Assistant input first (highest priority)
             if reader.ai_visible:
-                if data == '\x1b':  # Escape key - close AI
-                    reader.ai_visible = False
-                    # Don't call toggle_ai_assistant since we already set ai_visible = False
-                    # Just trigger a UI refresh to return to normal reading view
-                    reader.loop.call_soon_threadsafe(reader._post_command_sync, 'refresh_ui')
+                # When AI overlay is visible, treat ESC as potential escape/mouse sequence first.
+                if data == '\x1b':
+                    # Start escape-sequence buffering (mouse/arrow keys)
+                    reader.mouse_sequence_buffer = data
+                    reader.mouse_sequence_active = True
+                    return
+                elif reader.mouse_sequence_active:
+                    # Accumulate escape sequence bytes while AI is visible, but ignore their effects
+                    reader.mouse_sequence_buffer += data
+                    # Handle mouse sequences like: ESC [ < ... M|m
+                    if reader.mouse_sequence_buffer.startswith('\x1b[<') and (data == 'M' or data == 'm'):
+                        # Completed a mouse event sequence: discard
+                        reader.mouse_sequence_buffer = ''
+                        reader.mouse_sequence_active = False
+                        return
+                    # Handle simple arrow key sequences: ESC [ A|B|C|D
+                    elif reader.mouse_sequence_buffer.startswith('\x1b[') and len(reader.mouse_sequence_buffer) >= 3 and data in 'ABCD':
+                        # Completed an arrow key sequence: discard
+                        reader.mouse_sequence_buffer = ''
+                        reader.mouse_sequence_active = False
+                        return
+                    # Handle incomplete ESC: if it's just ESC and nothing follows quickly, treat as standalone ESC to close
+                    elif len(reader.mouse_sequence_buffer) == 1 and reader.mouse_sequence_buffer == '\x1b':
+                        if not select.select([sys.stdin], [], [], 0.01)[0]:  # 10ms timeout
+                            # No further input; treat as standalone ESC
+                            reader.mouse_sequence_buffer = ''
+                            reader.mouse_sequence_active = False
+                            reader.ai_visible = False
+                            reader.loop.call_soon_threadsafe(reader._post_command_sync, 'refresh_ui')
+                            return
+                    # Otherwise keep accumulating until sequence completes
                     return
                 elif data == '\r' or data == '\n':  # Enter key
                     reader.loop.call_soon_threadsafe(reader._post_command_sync, 'ai_send_message')

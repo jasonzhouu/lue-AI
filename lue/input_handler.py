@@ -41,11 +41,10 @@ def process_input(reader):
             
             # Handle TOC input (second priority)
             if reader.toc_visible:
-                if data == '\x1b':  # Escape key - close TOC
-                    reader.toc_visible = False
-                    # Don't call toggle_toc since we already set toc_visible = False
-                    # Just trigger a UI refresh to return to normal reading view
-                    reader.loop.call_soon_threadsafe(reader._post_command_sync, 'refresh_ui')
+                if data == '\x1b':
+                    # Begin escape-sequence processing (arrow keys, etc.)
+                    reader.mouse_sequence_buffer = data
+                    reader.mouse_sequence_active = True
                     return
                 elif data == '\r' or data == '\n':  # Enter key - jump to selected chapter
                     reader.loop.call_soon_threadsafe(reader._post_command_sync, 'toc_select')
@@ -151,7 +150,15 @@ def process_input(reader):
                         # No more input within timeout, treat as standalone ESC
                         reader.mouse_sequence_buffer = ''
                         reader.mouse_sequence_active = False
-                        # ESC handling is now done at higher priority above
+                        # Close overlays on standalone ESC
+                        if reader.toc_visible:
+                            reader.toc_visible = False
+                            reader.loop.call_soon_threadsafe(reader._post_command_sync, 'refresh_ui')
+                            return
+                        if reader.ai_visible:
+                            reader.ai_visible = False
+                            reader.loop.call_soon_threadsafe(reader._post_command_sync, 'refresh_ui')
+                            return
                 
                 return
             

@@ -65,15 +65,24 @@ class ReaderWidget(Static):
             from .ui import get_terminal_size, get_visible_content
             _, height = get_terminal_size()
             
+            # Ensure document layout is updated
+            if not hasattr(self.lue, 'document_lines') or not self.lue.document_lines:
+                from .ui import update_document_layout
+                update_document_layout(self.lue)
+            
             # Use the original UI's get_visible_content which handles highlighting
             visible_lines = get_visible_content(self.lue)
             
-            # Convert visible lines to a single Text object
+            # Convert visible lines to a single Text object with proper formatting
             display_content = Text()
             for i, line in enumerate(visible_lines):
                 if i > 0:
                     display_content.append("\n")
-                display_content.append(line)
+                # Ensure line is a Text object, not a string
+                if isinstance(line, str):
+                    display_content.append(Text(line))
+                else:
+                    display_content.append(line)
                     
             content_widget.update(display_content)
         except Exception as e:
@@ -706,6 +715,10 @@ class LueApp(App):
             # Set up the event loop for the lue instance
             self.lue.loop = asyncio.get_event_loop()
             
+            # Initialize document layout
+            from .ui import update_document_layout
+            update_document_layout(self.lue)
+            
             # Initialize TTS
             if not self._tts_initialized:
                 self._tts_initialized = await self.lue.initialize_tts()
@@ -713,6 +726,10 @@ class LueApp(App):
             # Initialize AI Assistant
             if not self._ai_initialized:
                 self._ai_initialized = await self.lue.initialize_ai_assistant()
+            
+            # Set up TTS highlight update callback
+            if self._tts_initialized:
+                self._setup_tts_highlight_callback()
                 
             # Start audio playback if TTS is available and not paused
             if self._tts_initialized and not self.lue.is_paused:
@@ -749,6 +766,36 @@ class LueApp(App):
                 await audio.stop_and_clear_audio(self.lue)
                 await asyncio.sleep(0.1)  # Small delay for cleanup
                 await audio.play_from_current_position(self.lue)
+        except Exception:
+            pass
+    
+    def _setup_tts_highlight_callback(self) -> None:
+        """Set up callback to update Textual display when TTS advances."""
+        try:
+            # Store original _post_command_sync method
+            original_post_command_sync = getattr(self.lue, '_post_command_sync', None)
+            
+            def enhanced_post_command_sync(cmd):
+                # Call original method first
+                if original_post_command_sync:
+                    original_post_command_sync(cmd)
+                
+                # Handle TTS highlight updates for Textual
+                if isinstance(cmd, tuple) and len(cmd) == 2:
+                    command_name, data = cmd
+                    if command_name == '_update_highlight':
+                        # Update position and trigger Textual reactive update
+                        if not self.lue.is_paused:
+                            self.lue.chapter_idx, self.lue.paragraph_idx, self.lue.sentence_idx = data
+                            # Trigger Textual reactive update
+                            try:
+                                reader_widget = self.query_one(ReaderWidget)
+                                reader_widget.current_position = data
+                            except Exception:
+                                pass
+            
+            # Replace the method
+            self.lue._post_command_sync = enhanced_post_command_sync
         except Exception:
             pass
 

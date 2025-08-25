@@ -2,9 +2,23 @@ import sys
 import select
 import asyncio
 import subprocess
+import warnings
 
 def process_input(reader):
-    """Process user input from stdin."""
+    """Process user input from stdin.
+    
+    DEPRECATED: This input handler has known issues with key processing,
+    screen flickering, and modal conflicts. Use the Textual interface instead:
+    
+    python -m lue your_book.epub  # Uses Textual by default
+    python -m lue --legacy your_book.epub  # Uses this deprecated handler
+    """
+    warnings.warn(
+        "The legacy input handler is deprecated due to known issues. "
+        "Use 'python -m lue your_book.epub' for the improved Textual interface.",
+        DeprecationWarning,
+        stacklevel=2
+    )
     try:
         if select.select([sys.stdin], [], [], 0)[0]:
             data = sys.stdin.read(1)

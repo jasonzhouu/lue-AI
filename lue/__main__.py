@@ -14,6 +14,7 @@ from rich.console import Console
 from .reader import Lue
 from . import config
 from .tts_manager import TTSManager, get_default_tts_model_name
+from .textual_main import main as textual_main
 
 def setup_logging():
     """Set up file-based logging for the application."""
@@ -45,7 +46,7 @@ async def main():
     default_tts = get_default_tts_model_name(available_tts)
 
     parser = argparse.ArgumentParser(
-        description="A terminal-based eBook reader with TTS",
+        description="A terminal-based eBook reader with TTS (Textual UI)",
         add_help=False  # Disable automatic help to add custom one
     )
     
@@ -53,6 +54,12 @@ async def main():
         '-h', '--help',
         action='help',
         help='Show this help message and exit'
+    )
+    
+    parser.add_argument(
+        '--legacy',
+        action='store_true',
+        help='Use legacy input handling (deprecated, has known issues)'
     )
     
     parser.add_argument("file_path", help="Path to the eBook file (.epub, .pdf, .txt, etc.)")
@@ -95,6 +102,14 @@ async def main():
 
     setup_environment()
     setup_logging()
+    
+    # Use Textual interface by default (unless --legacy flag is used)
+    if not getattr(args, 'legacy', False):
+        # Delegate to Textual implementation
+        import sys
+        sys.argv = [arg for arg in sys.argv if arg != '--legacy']  # Remove --legacy flag
+        textual_main()
+        return
     
     console = Console()
 
@@ -144,7 +159,12 @@ async def main():
 def cli():
     """Synchronous entry point for the command-line interface."""
     try:
-        asyncio.run(main())
+        # Check if --legacy flag is present
+        if '--legacy' in sys.argv:
+            asyncio.run(main())
+        else:
+            # Use Textual interface by default
+            textual_main()
     except (KeyboardInterrupt, SystemExit):
         pass
     except Exception as e:

@@ -2,7 +2,9 @@
 
 <img src="https://github.com/superstarryeyes/lue/blob/main/images/logo.png?raw=true" alt="Lue Logo" width="70%" />
 
-### Lue - Terminal eBook Reader with Text-to-Speech
+### Lue - Terminal eBook Reader with TTS(Text-to-Speech)
+
+A feature-rich terminal-based eBook reader with Text-to-Speech capabilities, powered by Textual for a smooth, flicker-free experience.
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![Python](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)

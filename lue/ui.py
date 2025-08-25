@@ -70,6 +70,16 @@ class UIColors:
     # Progress bar colors
     PROGRESS_BAR = "bold blue"  # Used for the progress text in title
     
+    # AI Assistant colors
+    AI_BORDER = "bright_blue"
+    AI_TITLE = "bold white"
+    AI_CONTEXT = "cyan"
+    AI_USER_MESSAGE = "yellow"
+    AI_AI_MESSAGE = "green"
+    AI_WAITING = "magenta"
+    AI_INPUT = "white"
+    AI_CONTROLS = "cyan"
+    
     # You can easily add theme presets here:
     @classmethod
     def apply_black_theme(cls):
@@ -87,6 +97,14 @@ class UIColors:
         cls.TEXT_NORMAL = "black"
         cls.TEXT_HIGHLIGHT = "white on black"
         cls.SELECTION_HIGHLIGHT = "reverse"
+        cls.AI_BORDER = "black"
+        cls.AI_TITLE = "white on black"
+        cls.AI_CONTEXT = "black"
+        cls.AI_USER_MESSAGE = "black"
+        cls.AI_AI_MESSAGE = "black"
+        cls.AI_WAITING = "black"
+        cls.AI_INPUT = "white on black"
+        cls.AI_CONTROLS = "black"
     
     @classmethod
     def apply_white_theme(cls):
@@ -104,6 +122,14 @@ class UIColors:
         cls.TEXT_NORMAL = "white"
         cls.TEXT_HIGHLIGHT = "bold white"
         cls.SELECTION_HIGHLIGHT = "reverse"
+        cls.AI_BORDER = "white"
+        cls.AI_TITLE = "bold white"
+        cls.AI_CONTEXT = "white"
+        cls.AI_USER_MESSAGE = "white"
+        cls.AI_AI_MESSAGE = "white"
+        cls.AI_WAITING = "white"
+        cls.AI_INPUT = "bold white"
+        cls.AI_CONTROLS = "white"
         
     # Table of Contents colors
     TOC_TITLE = "bold cyan"
@@ -647,8 +673,14 @@ def render_ai_assistant(reader):
         width, height = get_terminal_size()
         console = Console()
         
-        # Clear screen
-        console.clear()
+        # Clear screen only once when first opening or after responses
+        # This reduces flicker during typing
+        if not hasattr(reader, '_ai_screen_initialized') or reader._ai_screen_initialized != True:
+            console.clear()
+            reader._ai_screen_initialized = True
+        else:
+            # Move cursor to top and overwrite content instead of clearing
+            console.print("\033[H", end="")
         
         # Create title
         title = "AI Assistant"

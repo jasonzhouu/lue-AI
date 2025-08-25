@@ -778,6 +778,9 @@ class Lue:
             self._update_ai_context()
             ui.render_ai_assistant(self)
         else:
+            # Reset screen initialization flag for next time
+            if hasattr(self, '_ai_screen_initialized'):
+                self._ai_screen_initialized = False
             # Return to normal reading view - the UI will automatically render normally
             pass
 
@@ -815,6 +818,8 @@ class Lue:
             self.ai_conversation.append(("ai", error_msg))
         finally:
             self.ai_waiting_response = False
+            # Reset screen flag to force full refresh after response
+            self._ai_screen_initialized = False
             # Update display with response
             ui.render_ai_assistant(self)
 

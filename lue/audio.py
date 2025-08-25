@@ -20,6 +20,10 @@ def clean_tts_text(text: str) -> str:
     text = re.sub(ABBREVIATION_PATTERN, r'\1', text)
     text = re.sub(INITIAL_PATTERN, r'\1 ', text)
     
+    # Strip leading verse numbers at the start of a sentence, e.g. "1 ", "12.", "3)", "7:1 "
+    # We conservatively remove only an initial numeric token (1-3 digits) with optional punctuation.
+    text = re.sub(r'^\s*\d{1,3}(?:[).:])?(?:\s+|$)', ' ', text)
+
     # Remove loose punctuation marks that are standalone (not connected to words)
     # This pattern matches punctuation that is surrounded by whitespace or at string boundaries
     text = re.sub(r'(?:^|\s)[.,:;!?]+(?=\s|$)', ' ', text)

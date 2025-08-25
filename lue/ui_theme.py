@@ -63,6 +63,7 @@ class UIColors:
     TEXT_NORMAL = "white"           # Normal reading text
     TEXT_HIGHLIGHT = "bold magenta" # Current sentence highlight
     SELECTION_HIGHLIGHT = "reverse" # Text selection highlight
+    VERSE_NUMBER = "cyan dim"       # Leading verse numbers (e.g., Bible)
 
     # Progress bar colors
     PROGRESS_BAR = "bold blue"      # Used for the progress text in title

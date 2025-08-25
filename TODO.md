@@ -2,12 +2,14 @@
 
 P1 level
 - [ ] TOC 界面无法上下移动
-- [x] reader的界面还有问题，每一个sentence都独占一行。
+- [ ] epub电子书的reader的界面还有问题，每一个sentence都独占一行。
+- [ ] AI assitant界面无法工作，提示没有设置gemini api key，事实上我在.zshrc中已经设置好了env var
+- [ ] TOC和AI assitant界面没有全屏显示，只占用了一部分的屏幕
+
+## DONE
 - [x] 无法高亮当前句子，TTS也无法播放
 - [*] TTS播放完一句之后，不会自动将highlight移动到下一句。
-
-
-
+- [*] epub电子书的渲染有点问题，比如圣经的每句话开头都会有一个数字，这个数字应该比其他文字显示小一些（在命令行界面可能无法做到，但是可以换一种颜色显示），而且TTS播放的时候也不应该播放这个数字。
 
 
 
@@ -31,7 +33,7 @@ P2 level
 
 
 
-# DONE:
+## DONE:
 
 - [*] table of contents UI中的内容超出了边界线，而且按下enter键无法跳转到相应的章节。
 

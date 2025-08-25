@@ -5,6 +5,7 @@ from rich.panel import Panel
 from rich.text import Text
 from . import content_parser
 from .ui_theme import ICONS, COLORS
+import re
 from .ui_utils import get_terminal_size, create_progress_bar, truncate_text
 from .ai_assistant_ui import render_ai_assistant
 from .table_of_contents_ui import render_table_of_contents
@@ -115,6 +116,34 @@ def _apply_current_text_color(line):
     return new_line
 
 
+def _apply_verse_number_styling(line: Text) -> Text:
+    """If a line starts with a verse-like number (e.g., "1 ", "23.", "7)") color it with VERSE_NUMBER.
+    This is a non-destructive overlay on existing styles.
+    """
+    if not line or not line.plain:
+        return line
+
+    # Match leading verse markers: optional spaces, digits (1-3), optional ")" or ".", then space if punctuation absent
+    # Examples matched: "1 ", "12 ", "3.", "45)", "7:1 " (be conservative and only take the first number part)
+    m = re.match(r"^\s*(\d{1,3})([).:]?)\s?", line.plain)
+    if not m:
+        return line
+
+    start = 0
+    end = m.end()
+    # Apply style to the matched range
+    try:
+        line.stylize(COLORS.VERSE_NUMBER, start, end)
+    except Exception:
+        # Fallback: rebuild minimal styled text if stylize fails
+        prefix = line.plain[:end]
+        suffix = line.plain[end:]
+        new_line = Text(justify="left", no_wrap=False)
+        new_line.append(prefix, style=COLORS.VERSE_NUMBER)
+        new_line.append(suffix, style=COLORS.TEXT_NORMAL)
+        return new_line
+    return line
+
 def get_visible_content(reader):
     """Get the visible content to display."""
     width, height = get_terminal_size()
@@ -160,6 +189,8 @@ def get_visible_content(reader):
                     line = highlighted_paragraph_lines[line_offset]
 
             line = _apply_selection_highlighting(reader, line, i)
+            # Apply verse number styling last so it overlays other styles but before append
+            line = _apply_verse_number_styling(line)
 
             visible_lines.append(line)
         else:

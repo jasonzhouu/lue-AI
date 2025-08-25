@@ -9,6 +9,9 @@ platformdirs>=4.3.8
 # Default TTS model
 edge-tts>=7.2.0
 
+# For Google Cloud TTS:
+google-cloud-texttospeech>=2.27.0
+
 # For ElevenLabs TTS:
 elevenlabs>=2.11.0
 

@@ -742,26 +742,33 @@ class Lue:
     def _jump_to_selected_chapter(self):
         """Jump to the currently selected chapter in TOC."""
         if self.toc_visible:
-            # Jump to the beginning of the selected chapter
-            self.chapter_idx = self.toc_selected_chapter
-            self.paragraph_idx = 0
-            self.sentence_idx = 0
-            self.ui_chapter_idx = self.chapter_idx
-            self.ui_paragraph_idx = self.paragraph_idx
-            self.ui_sentence_idx = self.sentence_idx
+            # Get the actual chapter index from the chapter titles list
+            from . import content_parser
+            chapter_titles = content_parser.extract_chapter_titles(self.chapters)
             
-            # Close TOC and return to reading
-            self.toc_visible = False
-            
-            # Scroll to the new position
-            self._scroll_to_position_immediate(self.chapter_idx, self.paragraph_idx, self.sentence_idx)
-            
-            # Save progress
-            self._save_extended_progress(sync_audio_position=True)
-            
-            # Restart audio from new position if not paused
-            if not self.is_paused and self.running:
-                asyncio.create_task(self._restart_audio_after_navigation())
+            if 0 <= self.toc_selected_chapter < len(chapter_titles):
+                actual_chapter_idx, _ = chapter_titles[self.toc_selected_chapter]
+                
+                # Jump to the beginning of the selected chapter
+                self.chapter_idx = actual_chapter_idx
+                self.paragraph_idx = 0
+                self.sentence_idx = 0
+                self.ui_chapter_idx = self.chapter_idx
+                self.ui_paragraph_idx = self.paragraph_idx
+                self.ui_sentence_idx = self.sentence_idx
+                
+                # Close TOC and return to reading
+                self.toc_visible = False
+                
+                # Scroll to the new position
+                self._scroll_to_position_immediate(self.chapter_idx, self.paragraph_idx, self.sentence_idx)
+                
+                # Save progress
+                self._save_extended_progress(sync_audio_position=True)
+                
+                # Restart audio from new position if not paused
+                if not self.is_paused and self.running:
+                    asyncio.create_task(self._restart_audio_after_navigation())
 
     def _toggle_ai_assistant(self):
         """Toggle the AI assistant display."""

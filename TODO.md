@@ -10,7 +10,7 @@ P1 level
 P2 level
 - [ ] 在 Table of contents 页面里面，点击ESC按键不会关闭TOC界面，但是点击C按键会。
 - [ ] 在reader界面中，TTS每读完一个句子，屏幕都会闪烁一次。
-- [ ] AI assitant UI中每输入一个文字，界面就会闪烁一次。
+- [ ] AI assitant UI中每输入一个文字，界面就会闪烁一次
 
 
 

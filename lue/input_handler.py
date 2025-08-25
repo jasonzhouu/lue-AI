@@ -133,9 +133,34 @@ def process_input(reader):
                 cmd = 'move_to_end'
             elif data == 'c':
                 cmd = 'toggle_toc'
+            elif data == '?':
+                cmd = 'toggle_ai_assistant'
+            
+            # Handle AI Assistant navigation when AI is visible
+            if reader.ai_visible:
+                if data == '\x1b':  # Escape key - close AI
+                    cmd = 'toggle_ai_assistant'
+                elif data == '\r' or data == '\n':  # Enter key
+                    cmd = 'ai_send_message'
+                elif data == '\x03':  # Ctrl+C - clear input
+                    cmd = 'ai_clear_input'
+                elif data == 'q':
+                    reader.running = False
+                    reader.command_received_event.set()
+                    return
+                elif data.isprintable() and len(data) == 1:
+                    # Add character to input buffer
+                    reader.ai_input_buffer += data
+                    reader.loop.call_soon_threadsafe(reader._post_command_sync, 'ai_update_display')
+                    return
+                elif data == '\x7f' or data == '\b':  # Backspace
+                    if reader.ai_input_buffer:
+                        reader.ai_input_buffer = reader.ai_input_buffer[:-1]
+                        reader.loop.call_soon_threadsafe(reader._post_command_sync, 'ai_update_display')
+                    return
             
             # Handle TOC navigation when TOC is visible
-            if reader.toc_visible:
+            elif reader.toc_visible:
                 if data == '\x1b':  # Escape key - close TOC
                     cmd = 'toggle_toc'
                 elif data == '\r' or data == '\n':  # Enter key

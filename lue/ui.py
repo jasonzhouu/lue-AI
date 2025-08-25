@@ -113,6 +113,16 @@ class UIColors:
     TOC_CONTROLS = "yellow"
     TOC_BORDER = "bright_blue"
     
+    # AI Assistant colors
+    AI_TITLE = "bold green"
+    AI_CONTEXT = "cyan"
+    AI_USER_MESSAGE = "white"
+    AI_AI_MESSAGE = "yellow"
+    AI_INPUT = "white"
+    AI_CONTROLS = "yellow"
+    AI_BORDER = "green"
+    AI_WAITING = "dim yellow"
+    
 # Create global instances for easy access
 ICONS = UIIcons()
 COLORS = UIColors()
@@ -622,3 +632,165 @@ def render_table_of_contents(reader, selected_chapter_idx=0):
             console.print(f"{marker}{title}", style=style)
         console.print("─" * 50)
         console.print("Use ↑↓ to navigate, Enter to jump, Esc to close", style="yellow")
+
+
+def render_ai_assistant(reader):
+    """
+    Render a full-screen AI assistant overlay.
+    """
+    from rich.console import Console
+    from rich.text import Text
+    
+    try:
+        width, height = get_terminal_size()
+        console = Console()
+        
+        # Clear screen
+        console.clear()
+        
+        # Create title
+        title = "AI 助手"
+        
+        # Print title with borders
+        border_line = "┌" + "─" * (width - 2) + "┐"
+        title_line = "│" + title.center(width - 2) + "│"
+        separator_line = "├" + "─" * (width - 2) + "┤"
+        
+        console.print(Text(border_line, style=COLORS.AI_BORDER))
+        console.print(Text(title_line, style=f"{COLORS.AI_BORDER} {COLORS.AI_TITLE}"))
+        console.print(Text(separator_line, style=COLORS.AI_BORDER))
+        
+        # Show current context
+        context_text = reader.ai_current_context if reader.ai_current_context else "正在获取当前阅读上下文..."
+        context_lines = context_text.split('\n')
+        
+        # Print context section
+        context_title = "当前上下文:"
+        context_title_line = "│ " + context_title + " " * (width - 4 - len(context_title)) + " │"
+        console.print(Text(context_title_line, style=COLORS.AI_CONTEXT))
+        
+        for line in context_lines[:3]:  # Show max 3 lines of context
+            if len(line) > width - 6:
+                line = line[:width - 9] + "..."
+            context_line = "│ " + line + " " * (width - 4 - len(line)) + " │"
+            console.print(Text(context_line, style=COLORS.AI_CONTEXT))
+        
+        # Separator
+        separator_line = "├" + "─" * (width - 2) + "┤"
+        console.print(Text(separator_line, style=COLORS.AI_BORDER))
+        
+        # Calculate available space for conversation
+        used_lines = 8  # Title, context, separators, input, controls
+        available_height = max(5, height - used_lines)
+        
+        # Show conversation history
+        conversation_lines = []
+        for i, (role, message) in enumerate(reader.ai_conversation[-10:]):  # Show last 10 messages
+            prefix = "用户: " if role == "user" else "AI: "
+            style = COLORS.AI_USER_MESSAGE if role == "user" else COLORS.AI_AI_MESSAGE
+            
+            # Split message into lines that fit
+            message_lines = []
+            words = message.split(' ')
+            current_line = prefix
+            
+            for word in words:
+                if len(current_line + word) <= width - 6:
+                    current_line += word + " "
+                else:
+                    if current_line.strip():
+                        message_lines.append(current_line.strip())
+                    current_line = "    " + word + " "  # Indent continuation lines
+            
+            if current_line.strip():
+                message_lines.append(current_line.strip())
+            
+            for line in message_lines:
+                conversation_lines.append((line, style))
+        
+        # Show conversation (scroll to bottom if too many lines)
+        start_idx = max(0, len(conversation_lines) - available_height)
+        displayed_lines = 0
+        
+        for i in range(start_idx, len(conversation_lines)):
+            if displayed_lines >= available_height:
+                break
+            line_text, style = conversation_lines[i]
+            if len(line_text) > width - 6:
+                line_text = line_text[:width - 9] + "..."
+            conv_line = "│ " + line_text + " " * (width - 4 - len(line_text)) + " │"
+            console.print(Text(conv_line, style=style))
+            displayed_lines += 1
+        
+        # Fill remaining conversation space
+        for _ in range(available_height - displayed_lines):
+            empty_line = "│" + " " * (width - 2) + "│"
+            console.print(Text(empty_line, style=COLORS.AI_BORDER))
+        
+        # Input section
+        separator_line = "├" + "─" * (width - 2) + "┤"
+        console.print(Text(separator_line, style=COLORS.AI_BORDER))
+        
+        # Show waiting indicator or input prompt
+        if reader.ai_waiting_response:
+            input_text = "AI正在思考中..."
+            input_line = "│ " + input_text + " " * (width - 4 - len(input_text)) + " │"
+            console.print(Text(input_line, style=COLORS.AI_WAITING))
+        else:
+            input_prompt = "问题: "
+            input_text = input_prompt + reader.ai_input_buffer + "█"  # Show cursor
+            if len(input_text) > width - 6:
+                # Show end of input if too long
+                input_text = "..." + input_text[-(width - 9):]
+            input_line = "│ " + input_text + " " * (width - 4 - len(input_text)) + " │"
+            console.print(Text(input_line, style=COLORS.AI_INPUT))
+        
+        # Controls
+        separator_line = "├" + "─" * (width - 2) + "┤"
+        console.print(Text(separator_line, style=COLORS.AI_BORDER))
+        
+        controls = "[Enter] 发送问题   [Esc/?] 关闭   [Ctrl+C] 清空输入   [q] 退出程序"
+        if len(controls) > width - 4:
+            controls = "[Enter] 发送   [Esc] 关闭   [q] 退出"
+        controls_padding = (width - 2 - len(controls)) // 2
+        controls_line = "│" + " " * controls_padding + controls + " " * (width - 2 - len(controls) - controls_padding) + "│"
+        console.print(Text(controls_line, style=COLORS.AI_CONTROLS))
+        
+        # Suggestions (if no conversation yet)
+        if not reader.ai_conversation and not reader.ai_waiting_response:
+            suggestions_title = "建议问题:"
+            suggestions_line = "│ " + suggestions_title + " " * (width - 4 - len(suggestions_title)) + " │"
+            console.print(Text(suggestions_line, style=COLORS.AI_CONTROLS))
+            
+            suggestions = [
+                "这句话是什么意思？",
+                "这段内容的主要观点是什么？",
+                "这里有什么深层含义吗？"
+            ]
+            
+            for i, suggestion in enumerate(suggestions[:2]):  # Show max 2 suggestions
+                if len(suggestion) > width - 8:
+                    suggestion = suggestion[:width - 11] + "..."
+                suggestion_text = f"{i+1}. {suggestion}"
+                suggestion_line = "│ " + suggestion_text + " " * (width - 4 - len(suggestion_text)) + " │"
+                console.print(Text(suggestion_line, style="dim white"))
+        
+        # Bottom border
+        bottom_line = "└" + "─" * (width - 2) + "┘"
+        console.print(Text(bottom_line, style=COLORS.AI_BORDER))
+        
+    except Exception as e:
+        # Fallback to simple display
+        console = Console()
+        console.clear()
+        console.print(f"\nAI 助手 (渲染错误: {e})", style="red")
+        console.print("─" * 50)
+        console.print("当前上下文:", style="cyan")
+        console.print(reader.ai_current_context if reader.ai_current_context else "无法获取上下文")
+        console.print("─" * 50)
+        if reader.ai_waiting_response:
+            console.print("AI正在思考中...", style="yellow")
+        else:
+            console.print(f"问题: {reader.ai_input_buffer}█", style="white")
+        console.print("─" * 50)
+        console.print("按 Enter 发送问题，按 Esc 关闭", style="yellow")

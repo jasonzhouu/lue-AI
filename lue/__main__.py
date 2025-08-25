@@ -130,6 +130,9 @@ async def main():
             console.print(f"[bold yellow]Warning: TTS model '{args.tts}' "
                          "failed to initialize and has been disabled.[/bold yellow]")
 
+        # Initialize AI Assistant
+        await reader.initialize_ai_assistant()
+
         await reader.run()
 
     finally:

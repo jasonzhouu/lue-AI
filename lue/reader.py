@@ -9,7 +9,7 @@ from rich.console import Console
 from rich.text import Text
 import platformdirs
 
-from . import config, content_parser, progress_manager, audio, ui, input_handler
+from . import config, content_parser, progress_manager, audio, ui, input_handler, ai_assistant
 from .tts.base import TTSBase
 
 class Lue:
@@ -116,6 +116,13 @@ class Lue:
         self.toc_visible = False
         self.toc_selected_chapter = self.chapter_idx
         
+        # AI Assistant state
+        self.ai_visible = False
+        self.ai_conversation = []
+        self.ai_input_buffer = ""
+        self.ai_waiting_response = False
+        self.ai_current_context = ""
+        
         # Text selection state
         self.selection_active = False
         self.selection_start = None
@@ -147,6 +154,19 @@ class Lue:
             self.console.print(f"[bold red]Initialization of {self.tts_model.name.upper()} failed. TTS will be disabled.[/bold red]")
             self.tts_model = None
             self.is_paused = True
+            return False
+
+    async def initialize_ai_assistant(self) -> bool:
+        """Initialize the AI assistant."""
+        try:
+            success = await ai_assistant.initialize_ai_assistant()
+            if success:
+                self.console.print("[green]AI Assistant initialized successfully![/green]")
+            else:
+                self.console.print("[yellow]AI Assistant initialization failed. Check GEMINI_API_KEY environment variable.[/yellow]")
+            return success
+        except Exception as e:
+            self.console.print(f"[red]AI Assistant initialization error: {e}[/red]")
             return False
 
     def _post_command_sync(self, cmd):
@@ -743,6 +763,64 @@ class Lue:
             if not self.is_paused and self.running:
                 asyncio.create_task(self._restart_audio_after_navigation())
 
+    def _toggle_ai_assistant(self):
+        """Toggle the AI assistant display."""
+        self.ai_visible = not self.ai_visible
+        if self.ai_visible:
+            # Get current context when opening AI assistant
+            self._update_ai_context()
+            ui.render_ai_assistant(self)
+        else:
+            # Return to normal reading view - the UI will automatically render normally
+            pass
+
+    def _update_ai_context(self):
+        """Update the AI context with current reading position."""
+        try:
+            from . import ai_assistant
+            # Get context from AI assistant module
+            context = ai_assistant.ai_assistant._get_current_context(self)
+            self.ai_current_context = context
+        except Exception as e:
+            self.ai_current_context = f"获取上下文时出错: {str(e)}"
+
+    async def _send_ai_message(self):
+        """Send message to AI assistant."""
+        if not self.ai_input_buffer.strip():
+            return
+        
+        question = self.ai_input_buffer.strip()
+        self.ai_input_buffer = ""
+        
+        # Add user message to conversation
+        self.ai_conversation.append(("user", question))
+        self.ai_waiting_response = True
+        
+        # Update display to show waiting state
+        ui.render_ai_assistant(self)
+        
+        try:
+            from . import ai_assistant
+            response = await ai_assistant.ask_ai_question(self, question)
+            self.ai_conversation.append(("ai", response))
+        except Exception as e:
+            error_msg = f"AI回答时出错: {str(e)}"
+            self.ai_conversation.append(("ai", error_msg))
+        finally:
+            self.ai_waiting_response = False
+            # Update display with response
+            ui.render_ai_assistant(self)
+
+    def _clear_ai_input(self):
+        """Clear AI input buffer."""
+        self.ai_input_buffer = ""
+        ui.render_ai_assistant(self)
+
+    def _update_ai_display(self):
+        """Update AI assistant display."""
+        if self.ai_visible:
+            ui.render_ai_assistant(self)
+
     def _handle_page_scroll_immediate(self, direction):
         self.auto_scroll_enabled = False
         page_size = max(1, ui.get_terminal_size()[1] - 4)
@@ -1018,6 +1096,14 @@ class Lue:
                 self._navigate_toc_down()
             elif cmd == 'toc_select':
                 self._jump_to_selected_chapter()
+            elif cmd == 'toggle_ai_assistant':
+                self._toggle_ai_assistant()
+            elif cmd == 'ai_send_message':
+                asyncio.create_task(self._send_ai_message())
+            elif cmd == 'ai_clear_input':
+                self._clear_ai_input()
+            elif cmd == 'ai_update_display':
+                self._update_ai_display()
             elif 'next' in cmd or 'prev' in cmd:
                 self._handle_navigation_immediate(cmd)
                 self.pending_restart_task = asyncio.create_task(self._restart_audio_after_navigation())

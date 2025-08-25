@@ -15,6 +15,9 @@ google-cloud-texttospeech>=2.27.0
 # For ElevenLabs TTS:
 elevenlabs>=2.11.0
 
+# For AI Assistant (Gemini):
+google-generativeai>=0.8.0
+
 ## Optional TTS models (uncomment to enable)
 ## For Kokoro TTS, also install PyTorch for your platform:
 ## CPU: pip install torch torchvision torchaudio

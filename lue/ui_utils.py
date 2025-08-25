@@ -16,7 +16,8 @@ def get_terminal_size():
         tuple: (width, height) of the terminal
     """
     try:
-        return shutil.get_terminal_size()
+        terminal_size = shutil.get_terminal_size()
+        return (terminal_size.columns, terminal_size.lines)
     except:
         return (80, 24)  # Fallback dimensions
 

@@ -1,17 +1,22 @@
-import asyncio
 import os
 import sys
-import re
 from rich.console import Console
 from rich.panel import Panel
 from rich.text import Text
-from . import config, content_parser
+from . import content_parser
 from .ui_theme import ICONS, COLORS
 from .ui_utils import get_terminal_size, create_progress_bar, truncate_text
 from .ai_assistant_ui import render_ai_assistant
 from .table_of_contents_ui import render_table_of_contents
 
 
+def get_terminal_size():
+    """Get terminal size."""
+    try:
+        terminal_size = os.get_terminal_size()
+        return max(terminal_size.columns, 40), max(terminal_size.lines, 10)
+    except OSError:
+        return 80, 24
 
 def update_document_layout(reader):
     """Update the document layout based on terminal size."""

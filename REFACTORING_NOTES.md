@@ -118,6 +118,30 @@ All public functions and classes remain available from their original locations:
 - Global `ICONS` and `COLORS` are still accessible from `ui.py`
 - No changes required to existing code that imports from `ui.py`
 
+## Bug Fixes
+
+During the refactoring process, a critical bug was identified and fixed:
+
+### Terminal Size Type Error
+- **Problem**: `'<=' not supported between instances of 'int' and 'tuple'`
+- **Root Cause**: The `get_terminal_size()` function was returning `os.terminal_size` objects instead of proper tuples
+- **Impact**: Code in `reader.py` that used indexing like `get_terminal_size()[1]` was failing
+- **Solution**: Modified both `ui.py` and `ui_utils.py` to return proper tuples `(width, height)` instead of `os.terminal_size` objects
+
+### Code Changes Made
+```python
+# Before (broken):
+def get_terminal_size():
+    return shutil.get_terminal_size()  # Returns os.terminal_size object
+
+# After (fixed):
+def get_terminal_size():
+    terminal_size = shutil.get_terminal_size()
+    return (terminal_size.columns, terminal_size.lines)  # Returns tuple
+```
+
+This fix ensures that code like `ui.get_terminal_size()[1] - 4` works correctly throughout the application.
+
 ## Future Improvements
 
 This refactoring sets the foundation for:

@@ -31,7 +31,7 @@ export GEMINI_API_KEY="your_api_key_here"
 #### 对话功能
 - **输入问题**：直接输入文字提问
 - **发送消息**：按 `Enter` 键发送问题给AI
-- **清空输入**：按 `Ctrl+C` 清空当前输入
+- **清空输入**：按 `Ctrl+U` 清空当前输入
 - **关闭助手**：按 `Esc` 或 `?` 键关闭AI助手
 
 #### 建议问题
@@ -107,7 +107,7 @@ export GEMINI_API_KEY="your_api_key_here"
 | `?` | 打开/关闭AI助手 |
 | `Enter` | 发送问题 |
 | `Esc` | 关闭AI助手 |
-| `Ctrl+C` | 清空输入 |
+| `Ctrl+U` | 清空输入 |
 | `q` | 退出程序 |
 
 享受智能化的阅读体验！

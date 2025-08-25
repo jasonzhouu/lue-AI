@@ -20,7 +20,7 @@ def process_input(reader):
                 elif data == '\r' or data == '\n':  # Enter key
                     reader.loop.call_soon_threadsafe(reader._post_command_sync, 'ai_send_message')
                     return
-                elif data == '\x03':  # Ctrl+C - clear input
+                elif data == '\x15':  # Ctrl+U - clear input
                     reader.loop.call_soon_threadsafe(reader._post_command_sync, 'ai_clear_input')
                     return
                 elif data.isprintable() and len(data) == 1:

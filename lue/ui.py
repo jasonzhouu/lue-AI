@@ -806,9 +806,9 @@ def render_ai_assistant(reader):
         separator_line = "├" + "─" * (width - 2) + "┤"
         console.print(Text(separator_line, style=COLORS.AI_BORDER))
         
-        controls = "[Enter] Send Question   [Esc/?] Close   [Ctrl+C] Clear Input"
+        controls = "[Enter] Send Question   [Esc/?] Close   [Ctrl+U] Clear Input"
         if len(controls) > width - 4:
-            controls = "[Enter] Send   [Esc] Close   [Ctrl+C] Clear"
+            controls = "[Enter] Send   [Esc] Close   [Ctrl+U] Clear"
         controls_padding = (width - 2 - len(controls)) // 2
         controls_line = "│" + " " * controls_padding + controls + " " * (width - 2 - len(controls) - controls_padding) + "│"
         console.print(Text(controls_line, style=COLORS.AI_CONTROLS))

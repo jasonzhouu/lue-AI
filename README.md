@@ -253,7 +253,7 @@ When the AI assistant is open (press `?`):
 | **Key Binding**                         | **Action Description**                                                                         |
 | --------------------------------------- | ---------------------------------------------------------------------------------------------- |
 | `Enter`                                 | Send your question to the AI assistant and get an answer about the current content            |
-| `Ctrl+C`                                | Clear the current input text in the assistant                                                  |
+| `Ctrl+U`                                | Clear the current input text in the assistant                                                  |
 | `Esc`                                   | Close the AI assistant and return to reading                                                   |
 
 The AI assistant automatically uses the currently highlighted sentence as context for your questions. You can ask about:

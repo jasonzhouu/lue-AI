@@ -216,8 +216,19 @@ lue --help
 | `i` / `m`                               | Jump up or down by full pages for rapid navigation through longer documents                    |
 | `u` / `n`                               | Scroll up or down by smaller increments for fine-grained position control                      |
 | `y` / `b`                               | Jump directly to the beginning or end of the document for quick navigation                     |
+| `c`                                     | Open table of contents to navigate between chapters                                            |
 
 </div>
+
+### Table of Contents Navigation
+
+When the table of contents is open (press `c`):
+
+| **Key Binding**                         | **Action Description**                                                                         |
+| --------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `↑` / `↓`                               | Navigate up or down through the chapter list                                                   |
+| `Enter`                                 | Jump to the selected chapter and close the table of contents                                   |
+| `Esc` / `c` / `q`                       | Close the table of contents and return to reading                                              |
 
 ### Mouse Controls
 

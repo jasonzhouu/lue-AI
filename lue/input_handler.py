@@ -67,16 +67,28 @@ def process_input(reader):
                     reader.mouse_sequence_buffer = ''
                     reader.mouse_sequence_active = False
                     
-                    _kill_audio_immediately(reader)
                     cmd = None
-                    if data == 'C':
-                        cmd = 'next_sentence'
-                    elif data == 'D':
-                        cmd = 'prev_sentence'
-                    elif data == 'B':
-                        cmd = 'next_paragraph'
-                    elif data == 'A':
-                        cmd = 'prev_paragraph'
+                    if reader.toc_visible:
+                        # Handle TOC navigation with arrow keys
+                        if data == 'A':  # Up arrow
+                            cmd = 'toc_up'
+                        elif data == 'B':  # Down arrow
+                            cmd = 'toc_down'
+                        elif data == 'C':  # Right arrow - close TOC
+                            cmd = 'toggle_toc'
+                        elif data == 'D':  # Left arrow - close TOC
+                            cmd = 'toggle_toc'
+                    else:
+                        # Normal navigation
+                        _kill_audio_immediately(reader)
+                        if data == 'C':
+                            cmd = 'next_sentence'
+                        elif data == 'D':
+                            cmd = 'prev_sentence'
+                        elif data == 'B':
+                            cmd = 'next_paragraph'
+                        elif data == 'A':
+                            cmd = 'prev_paragraph'
                     
                     if cmd:
                         reader.loop.call_soon_threadsafe(reader._post_command_sync, cmd)
@@ -119,6 +131,18 @@ def process_input(reader):
                 cmd = 'move_to_beginning'
             elif data == 'b':
                 cmd = 'move_to_end'
+            elif data == 'c':
+                cmd = 'toggle_toc'
+            
+            # Handle TOC navigation when TOC is visible
+            if reader.toc_visible:
+                if data == '\x1b':  # Escape key - close TOC
+                    cmd = 'toggle_toc'
+                elif data == '\r' or data == '\n':  # Enter key
+                    cmd = 'toc_select'
+                elif data == 'q':
+                    cmd = 'toggle_toc'  # Close TOC with q
+                # Arrow keys are handled in the escape sequence processing above
             
             if cmd:
                 reader.loop.call_soon_threadsafe(reader._post_command_sync, cmd)

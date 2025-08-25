@@ -992,6 +992,58 @@ def _parse_raw_markdown(md_content):
 
 
 
+def extract_chapter_titles(chapters):
+    """
+    Extract chapter titles from the chapters data structure.
+    Returns a list of tuples: (chapter_index, title)
+    """
+    chapter_titles = []
+    
+    for chapter_idx, chapter in enumerate(chapters):
+        title = f"Chapter {chapter_idx + 1}"  # Default title
+        
+        # Look for chapter title in the first few paragraphs
+        for paragraph_idx, paragraph in enumerate(chapter[:3]):  # Check first 3 paragraphs
+            if not paragraph.strip():
+                continue
+                
+            # Check for common chapter title patterns
+            paragraph_clean = paragraph.strip()
+            
+            # Pattern 1: "Chapter X: Title" or "Chapter X - Title"
+            chapter_pattern = re.match(r'^Chapter\s+(\d+)[\s:.-]+(.+)$', paragraph_clean, re.IGNORECASE)
+            if chapter_pattern:
+                chapter_num = chapter_pattern.group(1)
+                chapter_title = chapter_pattern.group(2).strip()
+                title = f"Ch.{chapter_num}: {chapter_title}"
+                break
+                
+            # Pattern 2: Just "Chapter X"
+            chapter_only = re.match(r'^Chapter\s+(\d+)$', paragraph_clean, re.IGNORECASE)
+            if chapter_only:
+                chapter_num = chapter_only.group(1)
+                title = f"Chapter {chapter_num}"
+                break
+                
+            # Pattern 3: Numbered title like "1. Introduction"
+            numbered_pattern = re.match(r'^(\d+)[\s.-]+(.+)$', paragraph_clean)
+            if numbered_pattern:
+                chapter_num = numbered_pattern.group(1)
+                chapter_title = numbered_pattern.group(2).strip()
+                title = f"{chapter_num}. {chapter_title}"
+                break
+                
+            # Pattern 4: If first paragraph looks like a title (short, no punctuation at end)
+            if (paragraph_idx == 0 and len(paragraph_clean) < 100 and 
+                not paragraph_clean.endswith('.') and not paragraph_clean.endswith('!')):
+                title = paragraph_clean[:50] + ("..." if len(paragraph_clean) > 50 else "")
+                break
+        
+        chapter_titles.append((chapter_idx, title))
+    
+    return chapter_titles
+
+
 def _extract_content_html(file_path, console):
     try:
         with open(file_path, 'r', encoding='utf-8') as f:

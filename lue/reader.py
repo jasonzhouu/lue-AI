@@ -112,6 +112,10 @@ class Lue:
         self.mouse_sequence_active = False
         self.resize_anchor = None
         
+        # Table of Contents state
+        self.toc_visible = False
+        self.toc_selected_chapter = self.chapter_idx
+        
         # Text selection state
         self.selection_active = False
         self.selection_start = None
@@ -693,6 +697,52 @@ class Lue:
             if not self.is_paused and self.running:
                 await audio.play_from_current_position(self)
 
+    def _toggle_table_of_contents(self):
+        """Toggle the table of contents display."""
+        self.toc_visible = not self.toc_visible
+        if self.toc_visible:
+            self.toc_selected_chapter = self.chapter_idx
+            ui.render_table_of_contents(self, self.toc_selected_chapter)
+        else:
+            # Return to normal reading view
+            ui.render_book_content(self)
+
+    def _navigate_toc_up(self):
+        """Navigate up in the table of contents."""
+        if self.toc_visible and self.toc_selected_chapter > 0:
+            self.toc_selected_chapter -= 1
+            ui.render_table_of_contents(self, self.toc_selected_chapter)
+
+    def _navigate_toc_down(self):
+        """Navigate down in the table of contents."""
+        if self.toc_visible and self.toc_selected_chapter < len(self.chapters) - 1:
+            self.toc_selected_chapter += 1
+            ui.render_table_of_contents(self, self.toc_selected_chapter)
+
+    def _jump_to_selected_chapter(self):
+        """Jump to the currently selected chapter in TOC."""
+        if self.toc_visible:
+            # Jump to the beginning of the selected chapter
+            self.chapter_idx = self.toc_selected_chapter
+            self.paragraph_idx = 0
+            self.sentence_idx = 0
+            self.ui_chapter_idx = self.chapter_idx
+            self.ui_paragraph_idx = self.paragraph_idx
+            self.ui_sentence_idx = self.sentence_idx
+            
+            # Close TOC and return to reading
+            self.toc_visible = False
+            
+            # Scroll to the new position
+            self._scroll_to_position_immediate(self.chapter_idx, self.paragraph_idx, self.sentence_idx)
+            
+            # Save progress
+            self._save_extended_progress(sync_audio_position=True)
+            
+            # Restart audio from new position if not paused
+            if not self.is_paused and self.running:
+                asyncio.create_task(self._restart_audio_after_navigation())
+
     def _handle_page_scroll_immediate(self, direction):
         self.auto_scroll_enabled = False
         page_size = max(1, ui.get_terminal_size()[1] - 4)
@@ -960,6 +1010,14 @@ class Lue:
                 self._handle_move_to_end_immediate()
             elif cmd == 'copy_selection':
                 self._handle_copy_selection()
+            elif cmd == 'toggle_toc':
+                self._toggle_table_of_contents()
+            elif cmd == 'toc_up':
+                self._navigate_toc_up()
+            elif cmd == 'toc_down':
+                self._navigate_toc_down()
+            elif cmd == 'toc_select':
+                self._jump_to_selected_chapter()
             elif 'next' in cmd or 'prev' in cmd:
                 self._handle_navigation_immediate(cmd)
                 self.pending_restart_task = asyncio.create_task(self._restart_audio_after_navigation())

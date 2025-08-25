@@ -83,14 +83,8 @@ def render_ai_assistant(reader):
         width, height = get_terminal_size()
         console = Console()
 
-        # Clear screen only once when first opening or after responses
-        # This reduces flicker during typing
-        if not hasattr(reader, '_ai_screen_initialized') or reader._ai_screen_initialized != True:
-            console.clear()
-            reader._ai_screen_initialized = True
-        else:
-            # Move cursor to top and overwrite content instead of clearing
-            console.print("\033[H", end="")
+        # Always clear screen to prevent content residue
+        console.clear()
 
         # Create title
         title = "AI Assistant"
@@ -134,8 +128,33 @@ def render_ai_assistant(reader):
         console.print(Text(separator_line, style=COLORS.AI_BORDER))
 
         # Calculate available space for conversation
-        used_lines = 8  # Title, context, separators, input, controls
-        available_height = max(5, height - used_lines)
+        # Count actual used lines dynamically:
+        # - Top border (1) + title (1) + separator (1) = 3
+        # - Current sentence section: title (1) + sentence lines (up to 2) = up to 3
+        # - Chapter info (1 if exists) = 0 or 1
+        # - Separator after context (1) = 1
+        # - Input section: separator (1) + input (1) + separator (1) + controls (1) = 4
+        # - Bottom border (1) = 1
+        # - Suggestions (if no conversation): title (1) + suggestions (up to 2) = up to 3
+
+        base_used_lines = 3 + 1 + 1 + 4 + 1  # 10 lines minimum
+
+        # Add lines for current sentence display (up to 2 lines)
+        sentence_lines_count = 0
+        if current_sentence:
+            sentence_lines = wrap_text_to_lines(current_sentence, width - 8)
+            sentence_lines_count = min(len(sentence_lines), 2)
+
+        # Add line for chapter info if it exists
+        chapter_line_count = 1 if chapter_title else 0
+
+        # Add lines for suggestions if no conversation exists
+        suggestions_lines_count = 0
+        if not reader.ai_conversation and not reader.ai_waiting_response:
+            suggestions_lines_count = 3  # title + 2 suggestion lines
+
+        total_used_lines = base_used_lines + sentence_lines_count + chapter_line_count + suggestions_lines_count
+        available_height = max(3, height - total_used_lines)
 
         # Show conversation history
         conversation_lines = []

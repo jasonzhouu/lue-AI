@@ -35,32 +35,44 @@ def update_document_layout(reader):
         for para_idx, paragraph in enumerate(chapter):
             paragraph_start_line = len(reader.document_lines)
 
+            # Create text with proper paragraph flow (sentences together)
             plain_text = Text(paragraph, justify="left", no_wrap=False, style=COLORS.TEXT_NORMAL)
             wrapped_lines = plain_text.wrap(reader.console, available_width)
             paragraph_end_line = len(reader.document_lines) + len(wrapped_lines) - 1
 
             reader.paragraph_line_ranges[(chap_idx, para_idx)] = (paragraph_start_line, paragraph_end_line)
 
+            # Map sentences to their positions within the wrapped text
             sentences = content_parser.split_into_sentences(paragraph)
             current_char_pos = 0
+            
             for sent_idx, sentence in enumerate(sentences):
                 sentence_start = current_char_pos
                 sentence_end = current_char_pos + len(sentence)
 
-                line_char_pos = 0
+                # Find which wrapped line contains the start of this sentence
+                accumulated_chars = 0
                 for line_idx, line in enumerate(wrapped_lines):
-                    line_start = line_char_pos
-                    line_end = line_char_pos + len(line.plain)
+                    line_start = accumulated_chars
+                    line_end = accumulated_chars + len(line.plain)
 
+                    # Check if sentence starts within this line
                     if line_start <= sentence_start < line_end:
                         global_line_idx = paragraph_start_line + line_idx
                         reader.position_to_line[(chap_idx, para_idx, sent_idx)] = global_line_idx
                         break
 
-                    line_char_pos = line_end
+                    accumulated_chars = line_end
+                    # Account for space between wrapped lines
+                    if line_idx < len(wrapped_lines) - 1:
+                        accumulated_chars += 1
 
-                current_char_pos = sentence_end + 1
+                # Move to next sentence (add space between sentences)
+                current_char_pos = sentence_end
+                if sent_idx < len(sentences) - 1:
+                    current_char_pos += 1
 
+            # Map each line back to paragraph position
             for line_idx in range(len(wrapped_lines)):
                 global_line_idx = paragraph_start_line + line_idx
                 reader.line_to_position[global_line_idx] = (chap_idx, para_idx, 0)

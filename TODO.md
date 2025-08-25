@@ -1,8 +1,8 @@
-引入 textual 之后带来的问题
+# 引入 textual 之后带来的问题
 
 P1 level
 - [ ] TOC 界面无法上下移动
-- [ ] reader的界面还有问题，每一个sentence都独占一行。
+- [x] reader的界面还有问题，每一个sentence都独占一行。
 - [x] 无法高亮当前句子，TTS也无法播放
 - [*] TTS播放完一句之后，不会自动将highlight移动到下一句。
 
@@ -15,7 +15,7 @@ P1 level
 
 
 
-还存在的几个其他问题
+# 还存在的几个其他问题
 
 P1 level
 
@@ -31,7 +31,7 @@ P2 level
 
 
 
-DONE:
+# DONE:
 
 - [*] table of contents UI中的内容超出了边界线，而且按下enter键无法跳转到相应的章节。
 

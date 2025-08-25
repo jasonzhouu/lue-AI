@@ -651,7 +651,7 @@ def render_ai_assistant(reader):
         console.clear()
         
         # Create title
-        title = "AI 助手"
+        title = "AI Assistant"
         
         # Print title with borders
         border_line = "┌" + "─" * (width - 2) + "┐"
@@ -663,11 +663,11 @@ def render_ai_assistant(reader):
         console.print(Text(separator_line, style=COLORS.AI_BORDER))
         
         # Show current context
-        context_text = reader.ai_current_context if reader.ai_current_context else "正在获取当前阅读上下文..."
+        context_text = reader.ai_current_context if reader.ai_current_context else "Getting current reading context..."
         context_lines = context_text.split('\n')
         
         # Print context section
-        context_title = "当前上下文:"
+        context_title = "Current Context:"
         context_title_line = "│ " + context_title + " " * (width - 4 - len(context_title)) + " │"
         console.print(Text(context_title_line, style=COLORS.AI_CONTEXT))
         
@@ -688,7 +688,7 @@ def render_ai_assistant(reader):
         # Show conversation history
         conversation_lines = []
         for i, (role, message) in enumerate(reader.ai_conversation[-10:]):  # Show last 10 messages
-            prefix = "用户: " if role == "user" else "AI: "
+            prefix = "User: " if role == "user" else "AI: "
             style = COLORS.AI_USER_MESSAGE if role == "user" else COLORS.AI_AI_MESSAGE
             
             # Split message into lines that fit
@@ -735,11 +735,11 @@ def render_ai_assistant(reader):
         
         # Show waiting indicator or input prompt
         if reader.ai_waiting_response:
-            input_text = "AI正在思考中..."
+            input_text = "AI is thinking..."
             input_line = "│ " + input_text + " " * (width - 4 - len(input_text)) + " │"
             console.print(Text(input_line, style=COLORS.AI_WAITING))
         else:
-            input_prompt = "问题: "
+            input_prompt = "Question: "
             input_text = input_prompt + reader.ai_input_buffer + "█"  # Show cursor
             if len(input_text) > width - 6:
                 # Show end of input if too long
@@ -751,23 +751,23 @@ def render_ai_assistant(reader):
         separator_line = "├" + "─" * (width - 2) + "┤"
         console.print(Text(separator_line, style=COLORS.AI_BORDER))
         
-        controls = "[Enter] 发送问题   [Esc/?] 关闭   [Ctrl+C] 清空输入   [q] 退出程序"
+        controls = "[Enter] Send Question   [Esc/?] Close   [Ctrl+C] Clear Input   [q] Quit Program"
         if len(controls) > width - 4:
-            controls = "[Enter] 发送   [Esc] 关闭   [q] 退出"
+            controls = "[Enter] Send   [Esc] Close   [q] Quit"
         controls_padding = (width - 2 - len(controls)) // 2
         controls_line = "│" + " " * controls_padding + controls + " " * (width - 2 - len(controls) - controls_padding) + "│"
         console.print(Text(controls_line, style=COLORS.AI_CONTROLS))
         
         # Suggestions (if no conversation yet)
         if not reader.ai_conversation and not reader.ai_waiting_response:
-            suggestions_title = "建议问题:"
+            suggestions_title = "Suggested Questions:"
             suggestions_line = "│ " + suggestions_title + " " * (width - 4 - len(suggestions_title)) + " │"
             console.print(Text(suggestions_line, style=COLORS.AI_CONTROLS))
             
             suggestions = [
-                "这句话是什么意思？",
-                "这段内容的主要观点是什么？",
-                "这里有什么深层含义吗？"
+                "What does this sentence mean?",
+                "What is the main point of this content?",
+                "Is there any deeper meaning here?"
             ]
             
             for i, suggestion in enumerate(suggestions[:2]):  # Show max 2 suggestions
@@ -785,14 +785,14 @@ def render_ai_assistant(reader):
         # Fallback to simple display
         console = Console()
         console.clear()
-        console.print(f"\nAI 助手 (渲染错误: {e})", style="red")
+        console.print(f"\nAI Assistant (Render Error: {e})", style="red")
         console.print("─" * 50)
-        console.print("当前上下文:", style="cyan")
-        console.print(reader.ai_current_context if reader.ai_current_context else "无法获取上下文")
+        console.print("Current Context:", style="cyan")
+        console.print(reader.ai_current_context if reader.ai_current_context else "Unable to get context")
         console.print("─" * 50)
         if reader.ai_waiting_response:
-            console.print("AI正在思考中...", style="yellow")
+            console.print("AI is thinking...", style="yellow")
         else:
-            console.print(f"问题: {reader.ai_input_buffer}█", style="white")
+            console.print(f"Question: {reader.ai_input_buffer}█", style="white")
         console.print("─" * 50)
-        console.print("按 Enter 发送问题，按 Esc 关闭", style="yellow")
+        console.print("Press Enter to send question, Esc to close", style="yellow")

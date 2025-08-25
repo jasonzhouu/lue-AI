@@ -63,54 +63,54 @@ class AIAssistant:
                     chapter_title = title
                     break
             
-            context = f"当前章节: {chapter_title}\n" if chapter_title else ""
-            context += f"当前句子: \"{current_sentence}\"\n"
-            context += f"当前段落: \"{current_paragraph[:200]}{'...' if len(current_paragraph) > 200 else ''}\""
+            context = f"Current Chapter: {chapter_title}\n" if chapter_title else ""
+            context += f"Current Sentence: \"{current_sentence}\"\n"
+            context += f"Current Paragraph: \"{current_paragraph[:200]}{'...' if len(current_paragraph) > 200 else ''}\""
             
             return context
         except (IndexError, AttributeError) as e:
             logger.error(f"Error getting current context: {e}")
-            return "无法获取当前阅读上下文"
+            return "Unable to get current reading context"
     
     async def ask_question(self, reader, question: str) -> str:
         """Ask a question about the current reading context."""
         if not self.initialized:
-            return "AI助手未初始化。请检查GEMINI_API_KEY环境变量是否设置。"
+            return "AI assistant not initialized. Please check if GEMINI_API_KEY environment variable is set."
         
         try:
             context = self._get_current_context(reader)
             
             # Construct the prompt
-            prompt = f"""你是一个专业的阅读助手，帮助用户理解和分析文本内容。
+            prompt = f"""You are a professional reading assistant that helps users understand and analyze text content.
 
-阅读上下文：
+Reading Context:
 {context}
 
-用户问题：{question}
+User Question: {question}
 
-请基于提供的上下文回答用户的问题。如果问题与当前文本内容相关，请提供详细的分析和解释。如果问题超出了当前文本范围，请说明这一点并尽力提供有用的信息。
+Please answer the user's question based on the provided context. If the question is related to the current text content, provide detailed analysis and explanation. If the question goes beyond the current text scope, please indicate this and try to provide useful information.
 
-回答要求：
-1. 简洁明了，重点突出
-2. 如果涉及文本分析，请引用具体内容
-3. 提供有价值的见解和解释
-4. 使用中文回答"""
+Answer Requirements:
+1. Be concise and clear, highlighting key points
+2. If involving text analysis, quote specific content
+3. Provide valuable insights and explanations
+4. Answer in English"""
 
             response = await asyncio.to_thread(self.model.generate_content, prompt)
             return response.text.strip()
             
         except Exception as e:
             logger.error(f"Error asking question: {e}")
-            return f"抱歉，处理您的问题时出现错误：{str(e)}"
+            return f"Sorry, an error occurred while processing your question: {str(e)}"
     
     def get_suggested_questions(self, reader) -> List[str]:
         """Get suggested questions based on current context."""
         return [
-            "这句话是什么意思？",
-            "这段内容的主要观点是什么？",
-            "这里有什么深层含义吗？",
-            "这与前面的内容有什么联系？",
-            "作者想表达什么？"
+            "What does this sentence mean?",
+            "What is the main point of this content?",
+            "Is there any deeper meaning here?",
+            "How does this connect to previous content?",
+            "What is the author trying to express?"
         ]
 
 # Global AI assistant instance

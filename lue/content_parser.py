@@ -419,127 +419,207 @@ def extract_content(file_path, console):
         return []
 
 def _extract_content_epub(file_path, console):
-    """Extract content from EPUB using epr's cleaner approach"""
+    """Extract content from EPUB using ebooklib and BeautifulSoup for professional parsing"""
     try:
-        zip_archive = zipfile.ZipFile(file_path, 'r')
-    except Exception as e:
-        console.print(f"[bold red]Error: Failed to open EPUB file as ZIP: {e}[/bold red]")
+        import ebooklib
+        from ebooklib import epub
+        from bs4 import BeautifulSoup
+    except ImportError:
+        console.print("[bold red]Error: ebooklib and beautifulsoup4 are required for EPUB parsing. Install with: pip install ebooklib beautifulsoup4[/bold red]")
         return []
     
     try:
-        # Read container.xml to find OPF file location
-        container_data = zip_archive.read('META-INF/container.xml')
-        container_root = ET.fromstring(container_data)
+        # Open EPUB file using ebooklib
+        book = epub.read_epub(file_path)
+    except Exception as e:
+        console.print(f"[bold red]Error: Failed to open EPUB file: {e}[/bold red]")
+        return []
+    
+    chapters = []
+    
+    try:
+        # Get all items in reading order
+        spine_items = book.get_items_of_type(ebooklib.ITEM_DOCUMENT)
         
-        # Find the rootfile element
-        rootfile_elem = container_root.find('.//{*}rootfile')
-        if rootfile_elem is None:
-            rootfile_elem = container_root.find('.//rootfile')
-        
-        if rootfile_elem is None:
-            console.print("[bold red]Error: Could not find rootfile in container.xml[/bold red]")
-            zip_archive.close()
-            return []
-            
-        opf_path = rootfile_elem.get('full-path')
-        if not opf_path:
-            console.print("[bold red]Error: No full-path attribute in rootfile[/bold red]")
-            zip_archive.close()
-            return []
-        
-        # Normalize paths
-        opf_path = opf_path.replace('\\', '/')
-        opf_dir = os.path.dirname(opf_path) + "/" if os.path.dirname(opf_path) != "" else ""
-        
-        # Read and parse OPF file
-        try:
-            opf_data = zip_archive.read(opf_path)
-        except KeyError:
-            console.print(f"[bold red]Error: OPF file not found at {opf_path}[/bold red]")
-            zip_archive.close()
-            return []
-            
-        opf_root = ET.fromstring(opf_data)
-        
-        # Build manifest and spine
-        NS = {"OPF": "http://www.idpf.org/2007/opf"}
-        
-        manifest = {}
-        try:
-            for item in opf_root.findall(".//OPF:manifest/OPF:item", NS):
-                if item.get("media-type") != "application/x-dtbncx+xml" and item.get("properties") != "nav":
-                    manifest[item.get("id")] = opf_dir + unquote(item.get("href"))
-        except:
-            # Fallback without namespace
-            for item in opf_root.findall(".//manifest/item"):
-                if item.get("media-type") != "application/x-dtbncx+xml" and item.get("properties") != "nav":
-                    manifest[item.get("id")] = opf_dir + unquote(item.get("href"))
-        
-        # Get spine order
-        contents = []
-        try:
-            spine_items = opf_root.findall(".//OPF:spine/OPF:itemref", NS)
-        except:
-            spine_items = opf_root.findall(".//spine/itemref")
-            
-        for spine_item in spine_items:
-            item_id = spine_item.get("idref")
-            if item_id in manifest:
-                contents.append(manifest[item_id])
-        
-        if not contents:
-            console.print("[bold red]Error: No content files found in spine[/bold red]")
-            zip_archive.close()
-            return []
-        
-        # Process each content file using HTMLtoLines parser
-        chapters = []
-        processed_files = 0
-        
-        for content_path in contents:
+        for item in spine_items:
             try:
-                # Read the HTML content
-                try:
-                    content_data = zip_archive.read(content_path)
-                    content_str = content_data.decode('utf-8', errors='ignore')
-                except KeyError:
-                    continue
-                except UnicodeDecodeError:
-                    try:
-                        content_str = content_data.decode('latin-1', errors='ignore')
-                    except:
-                        continue
+                # Get HTML content
+                content = item.get_content().decode('utf-8', errors='ignore')
                 
-                # Parse with HTMLtoLines
-                parser = HTMLtoLines()
-                try:
-                    parser.feed(content_str)
-                    parser.close()
-                except:
-                    continue
+                # Parse with BeautifulSoup
+                soup = BeautifulSoup(content, 'html.parser')
                 
-                # Get clean lines
-                lines = parser.get_lines()
+                # Remove script, style, and other non-content elements
+                for element in soup(['script', 'style', 'head', 'meta', 'link']):
+                    element.decompose()
                 
-                if lines:
-                    chapters.append(lines)
-                    processed_files += 1
+                # Extract text content and group into proper paragraphs
+                paragraphs = _extract_paragraphs_from_soup(soup)
+                
+                if paragraphs:
+                    chapters.append(paragraphs)
                     
             except Exception as e:
-                console.print(f"[yellow]Warning: Error processing {content_path}: {e}[/yellow]")
+                console.print(f"[yellow]Warning: Error processing chapter {item.get_name()}: {e}[/yellow]")
                 continue
         
-        zip_archive.close()
+        if not chapters:
+            console.print("[bold red]Error: No readable content found in EPUB[/bold red]")
+            return []
         
         return chapters
         
     except Exception as e:
-        console.print(f"[bold red]Error processing EPUB structure: {e}[/bold red]")
-        try:
-            zip_archive.close()
-        except:
-            pass
+        console.print(f"[bold red]Error processing EPUB content: {e}[/bold red]")
         return []
+
+
+def _extract_paragraphs_from_soup(soup):
+    """Extract and intelligently group text into paragraphs from BeautifulSoup object"""
+    paragraphs = []
+    current_paragraph = []
+    
+    # Get all elements in document order
+    all_elements = soup.find_all(['p', 'div', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'li', 'blockquote', 'span'])
+    
+    for element in all_elements:
+        # Skip elements that are likely footnotes or verse numbers
+        if _is_footnote_element(element):
+            continue
+            
+        # Get clean text from element
+        text = element.get_text(strip=True)
+        if not text or len(text) < 3:
+            continue
+            
+        # Clean the text
+        text = clean_text_for_tts(text)
+        if not text or len(text) < 3:
+            continue
+        
+        # Handle different element types
+        tag_name = element.name.lower()
+        
+        if tag_name in ['h1', 'h2', 'h3', 'h4', 'h5', 'h6']:
+            # Headers - finish current paragraph and add header with spacing
+            if current_paragraph:
+                paragraphs.append(' '.join(current_paragraph))
+                current_paragraph = []
+            paragraphs.append('')  # Empty line before header
+            paragraphs.append(text)
+            paragraphs.append('')  # Empty line after header
+            
+        elif tag_name == 'li':
+            # List items - finish current paragraph and add list item
+            if current_paragraph:
+                paragraphs.append(' '.join(current_paragraph))
+                current_paragraph = []
+            paragraphs.append(f"• {text}")
+            
+        elif tag_name == 'blockquote':
+            # Blockquotes - finish current paragraph and add blockquote
+            if current_paragraph:
+                paragraphs.append(' '.join(current_paragraph))
+                current_paragraph = []
+            paragraphs.append(f"    {text}")
+            
+        elif tag_name == 'p':
+            # Paragraph elements - group sentences intelligently
+            sentences = split_into_sentences(text)
+            
+            for sentence in sentences:
+                sentence = sentence.strip()
+                if sentence:
+                    current_paragraph.append(sentence)
+                    
+                    # Group 3-4 sentences into a paragraph for better reading flow
+                    if len(current_paragraph) >= 4:
+                        paragraphs.append(' '.join(current_paragraph))
+                        current_paragraph = []
+            
+            # After processing all sentences in this <p>, check if we should break
+            # This prevents over-grouping across different <p> elements
+            if len(current_paragraph) >= 2:
+                paragraphs.append(' '.join(current_paragraph))
+                current_paragraph = []
+                        
+        elif tag_name == 'div':
+            # Div elements - more conservative, often represent paragraph breaks
+            sentences = split_into_sentences(text)
+            
+            # Finish current paragraph before processing div content
+            if current_paragraph:
+                paragraphs.append(' '.join(current_paragraph))
+                current_paragraph = []
+            
+            # Add div content as separate paragraph(s)
+            div_sentences = []
+            for sentence in sentences:
+                sentence = sentence.strip()
+                if sentence:
+                    div_sentences.append(sentence)
+                    
+                    # Group fewer sentences for divs
+                    if len(div_sentences) >= 3:
+                        paragraphs.append(' '.join(div_sentences))
+                        div_sentences = []
+            
+            # Add remaining sentences from div
+            if div_sentences:
+                paragraphs.append(' '.join(div_sentences))
+        
+        elif tag_name == 'span':
+            # Span elements - usually inline, add to current paragraph
+            sentences = split_into_sentences(text)
+            for sentence in sentences:
+                sentence = sentence.strip()
+                if sentence:
+                    current_paragraph.append(sentence)
+    
+    # Add any remaining sentences as a paragraph
+    if current_paragraph:
+        paragraphs.append(' '.join(current_paragraph))
+    
+    # Clean up empty paragraphs and excessive spacing
+    clean_paragraphs = []
+    empty_count = 0
+    
+    for para in paragraphs:
+        if para.strip() == '':
+            empty_count += 1
+            if empty_count <= 1:  # Allow only single empty lines
+                clean_paragraphs.append('')
+        else:
+            empty_count = 0
+            clean_paragraphs.append(para.strip())
+    
+    return [p for p in clean_paragraphs if p or len(clean_paragraphs) < 50]
+
+
+def _is_footnote_element(element):
+    """Check if an element is likely a footnote or verse number"""
+    # Check element attributes
+    if element.get('class'):
+        class_names = ' '.join(element.get('class')).lower()
+        if any(keyword in class_names for keyword in ['footnote', 'note', 'ref', 'verse', 'sup', 'sub']):
+            return True
+    
+    if element.get('id'):
+        element_id = element.get('id').lower()
+        if any(keyword in element_id for keyword in ['footnote', 'note', 'ref', 'verse']):
+            return True
+    
+    # Check if element contains only short numeric content (likely verse numbers)
+    text = element.get_text(strip=True)
+    if text and len(text) <= 3 and text.isdigit():
+        return True
+    
+    # Check for common footnote patterns
+    if text and len(text) <= 5:
+        if re.match(r'^\d+[.,;:]?$', text) or re.match(r'^[*†‡§¶]+$', text):
+            return True
+    
+    return False
 
 def _extract_content_pdf(file_path, console):
     from . import config

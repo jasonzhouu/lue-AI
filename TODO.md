@@ -1,16 +1,22 @@
 # 引入 textual 之后带来的问题
 
-P1 level
-- [ ] TOC 界面无法上下移动
-- [ ] epub电子书的reader的界面还有问题，每一个sentence都独占一行。
+## P1 level
 - [ ] AI assitant界面无法工作，提示没有设置gemini api key，事实上我在.zshrc中已经设置好了env var
+- [ ] TOC向下移动到超出TOC界面之后，无法显示，而且TOC的列表也有问题，和epub的目录不一致。
+- [ ] 快捷键i,m,u,n都没有效果
+- [ ] verse number的显示仍然存在问题。
+
+## P2 level
 - [ ] TOC和AI assitant界面没有全屏显示，只占用了一部分的屏幕
+- [ ] reader界面左上角没有显示书名
+- [ ] 将progress bar放在reader界面右上角
 
 ## DONE
+- [x] epub电子书的reader的界面还有问题，每一个sentence都独占一行。考虑换一个更加成熟的lib处理epub文件。verse number的显示不够完美。
 - [x] 无法高亮当前句子，TTS也无法播放
 - [*] TTS播放完一句之后，不会自动将highlight移动到下一句。
 - [*] epub电子书的渲染有点问题，比如圣经的每句话开头都会有一个数字，这个数字应该比其他文字显示小一些（在命令行界面可能无法做到，但是可以换一种颜色显示），而且TTS播放的时候也不应该播放这个数字。
-
+- [*] TOC 界面无法上下移动
 
 
 

@@ -19,6 +19,10 @@ elevenlabs>=2.11.0
 # For AI Assistant (Gemini):
 google-generativeai>=0.8.0
 
+# For improved EPUB parsing:
+ebooklib>=0.18
+beautifulsoup4>=4.12.0
+
 ## Optional TTS models (uncomment to enable)
 ## For Kokoro TTS, also install PyTorch for your platform:
 ## CPU: pip install torch torchvision torchaudio

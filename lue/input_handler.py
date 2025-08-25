@@ -16,7 +16,9 @@ def process_input(reader):
             if reader.ai_visible:
                 if data == '\x1b':  # Escape key - close AI
                     reader.ai_visible = False
-                    reader.loop.call_soon_threadsafe(reader._post_command_sync, 'toggle_ai_assistant')
+                    # Don't call toggle_ai_assistant since we already set ai_visible = False
+                    # Just trigger a UI refresh to return to normal reading view
+                    reader.loop.call_soon_threadsafe(reader._post_command_sync, 'refresh_ui')
                     return
                 elif data == '\r' or data == '\n':  # Enter key
                     reader.loop.call_soon_threadsafe(reader._post_command_sync, 'ai_send_message')
@@ -36,6 +38,28 @@ def process_input(reader):
                         return
                 # If none of the AI-specific keys, ignore other input
                 return
+            
+            # Handle TOC input (second priority)
+            if reader.toc_visible:
+                if data == '\x1b':  # Escape key - close TOC
+                    reader.toc_visible = False
+                    # Don't call toggle_toc since we already set toc_visible = False
+                    # Just trigger a UI refresh to return to normal reading view
+                    reader.loop.call_soon_threadsafe(reader._post_command_sync, 'refresh_ui')
+                    return
+                elif data == '\r' or data == '\n':  # Enter key - jump to selected chapter
+                    reader.loop.call_soon_threadsafe(reader._post_command_sync, 'toc_select')
+                    return
+                elif data == 'c':  # c - close TOC
+                    reader.toc_visible = False
+                    reader.loop.call_soon_threadsafe(reader._post_command_sync, 'refresh_ui')
+                    return
+                elif data == 'q':  # q - quit program
+                    reader.running = False
+                    reader.command_received_event.set()
+                    return
+                # Arrow keys will be handled in escape sequence processing below
+                # Other keys will fall through to normal processing
             
             if data == '\x1b':
                 # Handle escape sequences (arrow keys, mouse, etc.)
@@ -127,10 +151,7 @@ def process_input(reader):
                         # No more input within timeout, treat as standalone ESC
                         reader.mouse_sequence_buffer = ''
                         reader.mouse_sequence_active = False
-                        
-                        if reader.toc_visible:
-                            reader.loop.call_soon_threadsafe(reader._post_command_sync, 'toggle_toc')
-                            return
+                        # ESC handling is now done at higher priority above
                 
                 return
             
@@ -175,13 +196,7 @@ def process_input(reader):
                 cmd = 'toggle_ai_assistant'
             
             
-            # Handle TOC navigation when TOC is visible
-            elif reader.toc_visible:
-                if data == '\r' or data == '\n':  # Enter key - jump to selected chapter
-                    cmd = 'toc_select'
-                elif data == 'q' or data == 'c':
-                    cmd = 'toggle_toc'  # Close TOC with q or c
-                # Arrow keys and ESC are handled in the escape sequence processing above
+            # TOC navigation is now handled at higher priority above
             
             if cmd:
                 reader.loop.call_soon_threadsafe(reader._post_command_sync, cmd)

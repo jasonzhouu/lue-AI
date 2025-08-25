@@ -1122,6 +1122,12 @@ class Lue:
                 self._clear_ai_input()
             elif cmd == 'ai_update_display':
                 self._update_ai_display()
+            elif cmd == 'refresh_ui':
+                # Force immediate UI refresh to reflect state changes
+                # Reset cached render state so display_ui does not early-return
+                self.last_rendered_state = None
+                self.last_terminal_size = None
+                await ui.display_ui(self)
             elif 'next' in cmd or 'prev' in cmd:
                 self._handle_navigation_immediate(cmd)
                 self.pending_restart_task = asyncio.create_task(self._restart_audio_after_navigation())

@@ -483,9 +483,17 @@ def _extract_paragraphs_from_soup(soup):
     all_elements = soup.find_all(['p', 'div', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'li', 'blockquote', 'span'])
     
     for element in all_elements:
-        # Skip elements that are likely footnotes or verse numbers
+        # Skip elements that are footnotes (but preserve verse numbers)
         if _is_footnote_element(element):
             continue
+        
+        # Check if this is a verse number element
+        if _is_verse_number_element(element):
+            verse_text = element.get_text(strip=True)
+            if verse_text and verse_text.isdigit():
+                # Add verse number with special markers for display
+                current_paragraph.append(f"__VERSE__{verse_text}__/VERSE__")
+                continue
             
         # Get clean text from element
         text = element.get_text(strip=True)
@@ -596,17 +604,17 @@ def _extract_paragraphs_from_soup(soup):
     return [p for p in clean_paragraphs if p or len(clean_paragraphs) < 50]
 
 
-def _is_footnote_element(element):
-    """Check if an element is likely a footnote or verse number"""
-    # Check element attributes
+def _is_verse_number_element(element):
+    """Check if an element is likely a verse number (should be preserved with markers)"""
+    # Check element attributes for verse-specific patterns
     if element.get('class'):
         class_names = ' '.join(element.get('class')).lower()
-        if any(keyword in class_names for keyword in ['footnote', 'note', 'ref', 'verse', 'sup', 'sub']):
+        if 'verse' in class_names:
             return True
     
     if element.get('id'):
         element_id = element.get('id').lower()
-        if any(keyword in element_id for keyword in ['footnote', 'note', 'ref', 'verse']):
+        if 'verse' in element_id:
             return True
     
     # Check if element contains only short numeric content (likely verse numbers)
@@ -614,9 +622,25 @@ def _is_footnote_element(element):
     if text and len(text) <= 3 and text.isdigit():
         return True
     
-    # Check for common footnote patterns
+    return False
+
+def _is_footnote_element(element):
+    """Check if an element is likely a footnote (should be filtered out)"""
+    # Check element attributes
+    if element.get('class'):
+        class_names = ' '.join(element.get('class')).lower()
+        if any(keyword in class_names for keyword in ['footnote', 'note', 'ref', 'sup', 'sub']):
+            return True
+    
+    if element.get('id'):
+        element_id = element.get('id').lower()
+        if any(keyword in element_id for keyword in ['footnote', 'note', 'ref']):
+            return True
+    
+    # Check for common footnote patterns (but not verse numbers)
+    text = element.get_text(strip=True)
     if text and len(text) <= 5:
-        if re.match(r'^\d+[.,;:]?$', text) or re.match(r'^[*†‡§¶]+$', text):
+        if re.match(r'^[*†‡§¶]+$', text):  # Footnote symbols only
             return True
     
     return False

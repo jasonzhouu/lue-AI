@@ -14,8 +14,11 @@ def clean_tts_text(text: str) -> str:
     """
     Removes periods from specific English abbreviations and single initials
     to prevent unnatural pauses in TTS engines. Also removes loose punctuation
-    marks that are not connected to any word.
+    marks that are not connected to any word. Removes verse number markers.
     """
+    # Remove verse number markers (from EPUB parser)
+    text = re.sub(r'__VERSE__\d+__/VERSE__\s*', '', text)
+    
     # Remove periods from abbreviations and initials
     text = re.sub(ABBREVIATION_PATTERN, r'\1', text)
     text = re.sub(INITIAL_PATTERN, r'\1 ', text)

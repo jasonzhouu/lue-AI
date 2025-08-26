@@ -11,6 +11,27 @@ from .ai_assistant_ui import render_ai_assistant
 from .table_of_contents_ui import render_table_of_contents
 
 
+def _process_verse_markers(text):
+    """Process verse number markers and apply appropriate styling"""
+    styled_text = Text()
+    
+    # Split text by verse markers
+    parts = re.split(r'(__VERSE__\d+__/VERSE__)', text)
+    
+    for part in parts:
+        if re.match(r'__VERSE__\d+__/VERSE__', part):
+            # Extract verse number
+            verse_num = re.search(r'__VERSE__(\d+)__/VERSE__', part).group(1)
+            # Style verse number with cyan dim (small and less prominent)
+            styled_text.append(verse_num, style="cyan dim")
+            styled_text.append(" ")  # Add space after verse number
+        else:
+            # Regular text
+            styled_text.append(part, style=COLORS.TEXT_NORMAL)
+    
+    return styled_text
+
+
 def get_terminal_size():
     """Get terminal size."""
     try:
@@ -37,8 +58,9 @@ def update_document_layout(reader):
             paragraph_start_line = len(reader.document_lines)
 
             # Create text with proper paragraph flow (sentences together)
-            plain_text = Text(paragraph, justify="left", no_wrap=False, style=COLORS.TEXT_NORMAL)
-            wrapped_lines = plain_text.wrap(reader.console, available_width)
+            # Handle verse number markers for display
+            styled_text = _process_verse_markers(paragraph)
+            wrapped_lines = styled_text.wrap(reader.console, available_width)
             paragraph_end_line = len(reader.document_lines) + len(wrapped_lines) - 1
 
             reader.paragraph_line_ranges[(chap_idx, para_idx)] = (paragraph_start_line, paragraph_end_line)

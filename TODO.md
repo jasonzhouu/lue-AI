@@ -1,7 +1,7 @@
 # 引入 textual 之后带来的问题
 
 ## P1 level
-- [ ] verse number的显示仍然存在问题。
+- [x] verse number的显示仍然存在问题。请使用最新安装的beautifulsoup4、ebooklib解决这个问题
 - [ ] 快捷键i,m,u,n都没有效果，用MacBook的触控板滚动屏幕也没有效果
 
 ## P2 level

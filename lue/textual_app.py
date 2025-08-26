@@ -678,8 +678,8 @@ class LueApp(App):
     }
     
     #toc-container, #ai-container {
-        width: 80%;
-        height: 80%;
+        width: 100%;
+        height: 100%;
         background: $surface;
         border: solid $primary;
         padding: 1;

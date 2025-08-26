@@ -246,6 +246,7 @@ class ReaderWidget(Static):
         """Find which sentence in a paragraph corresponds to the click position."""
         try:
             from . import content_parser
+            from .ui import get_terminal_size
             
             # Get the paragraph text
             if (chapter_idx >= len(self.lue.chapters) or 
@@ -257,40 +258,85 @@ class ReaderWidget(Static):
             
             if not sentences:
                 return 0
-                
-            # For now, use a simple heuristic: divide the line into equal parts
-            # based on the number of sentences and see which part was clicked
-            from .ui import get_terminal_size
+            
+            # Get terminal width for text wrapping calculations
             width, _ = get_terminal_size()
             available_width = max(20, width - 10)
             
-            # Calculate approximate character position within the paragraph
-            # This is a simplified approach - in a more sophisticated implementation,
-            # we would track exact character positions for each sentence
+            # Calculate the absolute character position within the paragraph
+            # by reconstructing the wrapped text layout
+            absolute_char_pos = self._calculate_absolute_char_position(
+                chapter_idx, paragraph_idx, line_idx, char_pos, available_width
+            )
             
-            # Get paragraph line range to determine which part of paragraph was clicked
-            if hasattr(self.lue, 'paragraph_line_ranges'):
-                paragraph_key = (chapter_idx, paragraph_idx)
-                if paragraph_key in self.lue.paragraph_line_ranges:
-                    para_start, para_end = self.lue.paragraph_line_ranges[paragraph_key]
-                    line_offset = line_idx - para_start
-                    
-                    # Estimate which sentence based on line position within paragraph
-                    total_lines = para_end - para_start + 1
-                    if total_lines > 0:
-                        line_ratio = line_offset / total_lines
-                        estimated_sentence = int(line_ratio * len(sentences))
-                        return min(estimated_sentence, len(sentences) - 1)
-            
-            # Fallback: use character position to estimate sentence
-            total_chars = sum(len(s) for s in sentences)
-            if total_chars > 0:
-                # Rough estimate based on character position
-                char_ratio = min(char_pos / available_width, 1.0)
-                estimated_sentence = int(char_ratio * len(sentences))
-                return min(estimated_sentence, len(sentences) - 1)
+            # Find which sentence contains this character position
+            current_pos = 0
+            for sent_idx, sentence in enumerate(sentences):
+                sentence_start = current_pos
+                sentence_end = current_pos + len(sentence)
                 
+                # Check if the click position falls within this sentence
+                if sentence_start <= absolute_char_pos < sentence_end:
+                    return sent_idx
+                
+                # Move to next sentence (account for space between sentences)
+                current_pos = sentence_end
+                if sent_idx < len(sentences) - 1:
+                    current_pos += 1  # Space between sentences
+            
+            # If we didn't find a match, return the last sentence
+            return len(sentences) - 1
+            
+        except Exception:
             return 0
+            
+    def _calculate_absolute_char_position(self, chapter_idx: int, paragraph_idx: int,
+                                        line_idx: int, char_pos: int, available_width: int) -> int:
+        """Calculate the absolute character position within a paragraph from click coordinates."""
+        try:
+            # Get paragraph text and wrap it to see how it's displayed
+            paragraph = self.lue.chapters[chapter_idx][paragraph_idx]
+            
+            # Process verse markers like the UI does
+            from .ui import _process_verse_markers
+            styled_text = _process_verse_markers(paragraph)
+            wrapped_lines = styled_text.wrap(self.lue.console, available_width)
+            
+            # Get paragraph line range
+            paragraph_key = (chapter_idx, paragraph_idx)
+            if (hasattr(self.lue, 'paragraph_line_ranges') and 
+                paragraph_key in self.lue.paragraph_line_ranges):
+                
+                para_start, para_end = self.lue.paragraph_line_ranges[paragraph_key]
+                line_offset = line_idx - para_start
+                
+                # Ensure line_offset is within bounds
+                if line_offset < 0 or line_offset >= len(wrapped_lines):
+                    return 0
+                
+                # Calculate character position by summing up characters in previous lines
+                # plus the character position within the current line
+                total_chars = 0
+                
+                # Add characters from all previous lines in this paragraph
+                for i in range(line_offset):
+                    if i < len(wrapped_lines):
+                        total_chars += len(wrapped_lines[i].plain)
+                        # Account for line breaks (except for the last line)
+                        if i < len(wrapped_lines) - 1:
+                            total_chars += 1
+                
+                # Add the character position within the current line
+                if line_offset < len(wrapped_lines):
+                    current_line = wrapped_lines[line_offset]
+                    # Clamp char_pos to the actual line length
+                    line_char_pos = min(char_pos, len(current_line.plain))
+                    total_chars += max(0, line_char_pos)
+                
+                return total_chars
+            
+            # Fallback: simple estimation
+            return min(char_pos, len(paragraph))
             
         except Exception:
             return 0

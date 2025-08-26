@@ -1,6 +1,7 @@
 """Abstract base class for TTS models in the Lue eBook reader."""
 
 from abc import ABC, abstractmethod
+from typing import Optional
 from rich.console import Console
 
 
@@ -88,7 +89,7 @@ class TTSBase(ABC):
         """
         pass
 
-    def get_overlap_seconds(self) -> float | None:
+    def get_overlap_seconds(self) -> Optional[float]:
         """
         Get the TTS-specific overlap seconds for this model.
         

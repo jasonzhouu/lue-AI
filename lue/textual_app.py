@@ -373,7 +373,7 @@ class ReaderWidget(Static):
 
 
 class TOCModal(ModalScreen):
-    """Table of Contents modal screen with scrolling support."""
+    """Enhanced Table of Contents modal with better space utilization."""
     
     BINDINGS = [
         Binding("escape", "dismiss", "Close"),
@@ -382,6 +382,10 @@ class TOCModal(ModalScreen):
         Binding("up", "cursor_up", "Up"),
         Binding("down", "cursor_down", "Down"),
         Binding("enter", "select_chapter", "Select"),
+        Binding("home", "go_to_top", "First Chapter"),
+        Binding("end", "go_to_bottom", "Last Chapter"),
+        Binding("page_up", "page_up", "Page Up"),
+        Binding("page_down", "page_down", "Page Down"),
     ]
     
     def __init__(self, lue_instance: lue_reader.Lue):
@@ -389,62 +393,91 @@ class TOCModal(ModalScreen):
         self.lue = lue_instance
         # Initialize selected chapter to current chapter
         self.selected_chapter = getattr(lue_instance, 'chapter_idx', 0)
-        # Scrolling support
+        # Dynamic scrolling - will be calculated based on actual screen size
         self.toc_scroll_offset = 0
-        self.visible_height = 15  # Number of chapters visible at once
         
     def compose(self) -> ComposeResult:
-        """Create the TOC interface."""
+        """Create the TOC interface with better layout."""
         with Container(id="toc-container"):
             yield Static("📚 Table of Contents", id="toc-title")
             yield Static(id="toc-content")
+            yield Static(id="toc-footer")
             
     def on_mount(self) -> None:
         """Initialize TOC content when mounted."""
         self.update_toc_display()
         
+    def on_resize(self) -> None:
+        """Handle screen resize by updating display."""
+        self.update_toc_display()
+        
     def update_toc_display(self) -> None:
-        """Update the TOC content display with scrolling support."""
+        """Update the TOC content display with dynamic height calculation."""
         try:
             toc_widget = self.query_one("#toc-content", Static)
+            footer_widget = self.query_one("#toc-footer", Static)
             
-            # Get chapter titles from lue instance
-            if hasattr(self.lue, 'get_chapter_titles'):
-                chapter_titles = self.lue.get_chapter_titles()
+            # Get actual available height from the container
+            container = self.query_one("#toc-container", Container)
+            available_height = container.size.height - 4  # Account for title, footer, and borders
+            
+            # Get chapter titles using the existing content parser
+            from . import content_parser
+            file_path = getattr(self.lue, 'file_path', None)
+            if hasattr(self.lue, 'chapters') and self.lue.chapters:
+                chapter_titles = content_parser.extract_chapter_titles(self.lue.chapters, file_path)
             else:
-                # Fallback: generate basic chapter titles
-                chapter_titles = [f"Chapter {i+1}" for i in range(len(self.lue.chapters))]
+                chapter_titles = [(i, f"Chapter {i+1}") for i in range(len(getattr(self.lue, 'chapters', [])))]
             
-            # Adjust scroll offset to keep selected chapter visible
             total_chapters = len(chapter_titles)
-            if self.selected_chapter < self.toc_scroll_offset:
-                self.toc_scroll_offset = self.selected_chapter
-            elif self.selected_chapter >= self.toc_scroll_offset + self.visible_height:
-                self.toc_scroll_offset = self.selected_chapter - self.visible_height + 1
+            if total_chapters == 0:
+                toc_widget.update(Text("No chapters available", style="dim"))
+                footer_widget.update(Text("", style="dim"))
+                return
             
-            # Ensure scroll offset is within bounds
-            self.toc_scroll_offset = max(0, min(self.toc_scroll_offset, total_chapters - self.visible_height))
+            # Calculate how many chapters can fit on screen
+            visible_height = max(5, available_height - 2)  # Reserve space for scroll indicators
             
-            # Calculate visible range
-            start_idx = self.toc_scroll_offset
-            end_idx = min(start_idx + self.visible_height, total_chapters)
+            # Smart scrolling: keep selected chapter visible and centered when possible
+            if total_chapters <= visible_height:
+                # All chapters fit on screen
+                self.toc_scroll_offset = 0
+                start_idx = 0
+                end_idx = total_chapters
+            else:
+                # Need scrolling - center the selected chapter
+                center_offset = visible_height // 2
+                ideal_start = max(0, self.selected_chapter - center_offset)
+                ideal_end = min(total_chapters, ideal_start + visible_height)
+                
+                # Adjust if we're near the end
+                if ideal_end == total_chapters:
+                    ideal_start = max(0, total_chapters - visible_height)
+                
+                self.toc_scroll_offset = ideal_start
+                start_idx = ideal_start
+                end_idx = ideal_end
             
-            # Build TOC display with selection indicators
+            # Build TOC display
             toc_lines = []
             current_chapter = getattr(self.lue, 'chapter_idx', 0)
             
             # Add scroll indicator at top if needed
             if self.toc_scroll_offset > 0:
-                toc_lines.append((f"↑ ... ({self.toc_scroll_offset} more above)", "dim"))
+                toc_lines.append((f"  ↑ {self.toc_scroll_offset} more above", "dim"))
             
+            # Display chapters
             for i in range(start_idx, end_idx):
-                title = chapter_titles[i]
-                # Current chapter indicator
+                if i >= len(chapter_titles):
+                    break
+                    
+                chapter_idx, title = chapter_titles[i]
+                
+                # Indicators
                 current_indicator = "●" if i == current_chapter else " "
-                # Selection indicator
                 selection_indicator = "▶" if i == self.selected_chapter else " "
                 
-                # Style based on selection
+                # Style based on selection and current position
                 if i == self.selected_chapter:
                     style = "bold yellow on blue"
                 elif i == current_chapter:
@@ -452,13 +485,14 @@ class TOCModal(ModalScreen):
                 else:
                     style = "white"
                 
+                # Format with proper spacing
                 line_text = f"{current_indicator}{selection_indicator} {title}"
                 toc_lines.append((line_text, style))
             
             # Add scroll indicator at bottom if needed
             if end_idx < total_chapters:
                 remaining = total_chapters - end_idx
-                toc_lines.append((f"↓ ... ({remaining} more below)", "dim"))
+                toc_lines.append((f"  ↓ {remaining} more below", "dim"))
             
             # Build the final display text
             toc_display = Text()
@@ -468,6 +502,17 @@ class TOCModal(ModalScreen):
                 toc_display.append(line_text, style=style)
                 
             toc_widget.update(toc_display)
+            
+            # Update footer with navigation info
+            current_title = ""
+            for idx, title in chapter_titles:
+                if idx == current_chapter:
+                    current_title = title
+                    break
+            
+            footer_text = f"Current: {current_title} ({current_chapter + 1}/{total_chapters}) | [↑↓] Navigate [Enter] Jump [Esc] Close"
+            footer_widget.update(Text(footer_text, style="dim"))
+            
         except Exception as e:
             toc_widget = self.query_one("#toc-content", Static)
             toc_widget.update(Text(f"Error updating TOC: {str(e)}", style="red"))
@@ -481,15 +526,63 @@ class TOCModal(ModalScreen):
     def action_cursor_down(self) -> None:
         """Move selection down with scrolling support."""
         # Get actual chapter count from titles
-        if hasattr(self.lue, 'get_chapter_titles'):
-            chapter_titles = self.lue.get_chapter_titles()
+        from . import content_parser
+        file_path = getattr(self.lue, 'file_path', None)
+        if hasattr(self.lue, 'chapters') and self.lue.chapters:
+            chapter_titles = content_parser.extract_chapter_titles(self.lue.chapters, file_path)
             max_chapters = len(chapter_titles) - 1
         else:
-            max_chapters = len(self.lue.chapters) - 1
+            max_chapters = len(getattr(self.lue, 'chapters', [])) - 1
             
         if self.selected_chapter < max_chapters:
             self.selected_chapter += 1
             self.update_toc_display()
+            
+    def action_go_to_top(self) -> None:
+        """Jump to first chapter."""
+        self.selected_chapter = 0
+        self.update_toc_display()
+        
+    def action_go_to_bottom(self) -> None:
+        """Jump to last chapter."""
+        from . import content_parser
+        file_path = getattr(self.lue, 'file_path', None)
+        if hasattr(self.lue, 'chapters') and self.lue.chapters:
+            chapter_titles = content_parser.extract_chapter_titles(self.lue.chapters, file_path)
+            self.selected_chapter = len(chapter_titles) - 1
+        else:
+            self.selected_chapter = len(getattr(self.lue, 'chapters', [])) - 1
+        self.update_toc_display()
+        
+    def action_page_up(self) -> None:
+        """Move selection up by a page."""
+        # Get actual available height
+        container = self.query_one("#toc-container", Container)
+        available_height = container.size.height - 4
+        visible_height = max(5, available_height - 2)
+        page_size = max(1, visible_height // 2)
+        
+        self.selected_chapter = max(0, self.selected_chapter - page_size)
+        self.update_toc_display()
+        
+    def action_page_down(self) -> None:
+        """Move selection down by a page."""
+        from . import content_parser
+        file_path = getattr(self.lue, 'file_path', None)
+        if hasattr(self.lue, 'chapters') and self.lue.chapters:
+            chapter_titles = content_parser.extract_chapter_titles(self.lue.chapters, file_path)
+            max_chapters = len(chapter_titles) - 1
+        else:
+            max_chapters = len(getattr(self.lue, 'chapters', [])) - 1
+            
+        # Get actual available height
+        container = self.query_one("#toc-container", Container)
+        available_height = container.size.height - 4
+        visible_height = max(5, available_height - 2)
+        page_size = max(1, visible_height // 2)
+        
+        self.selected_chapter = min(max_chapters, self.selected_chapter + page_size)
+        self.update_toc_display()
             
     def action_select_chapter(self) -> None:
         """Jump to selected chapter."""
@@ -690,7 +783,21 @@ class LueApp(App):
     #toc-title, #ai-title {
         text-align: center;
         text-style: bold;
-        margin-bottom: 1;
+        height: 1;
+        margin-bottom: 0;
+    }
+    
+    #toc-content {
+        height: 1fr;
+        padding: 0;
+        margin: 0;
+    }
+    
+    #toc-footer {
+        height: 2;
+        text-align: center;
+        margin-top: 0;
+        padding: 0;
     }
     
     Horizontal {
@@ -911,7 +1018,7 @@ class LueApp(App):
             
     # Modal actions
     def action_show_toc(self) -> None:
-        """Show table of contents."""
+        """Show enhanced table of contents modal."""
         def handle_toc_result(result):
             """Handle TOC modal result and update display."""
             self._update_position()

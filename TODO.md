@@ -8,6 +8,7 @@
 - [ ] 在reader界面左上角显示书名，将progress bar放在reader界面右上角
 
 ## DONE
+- [*] TOC界面的高度太低，导致留出来太多空白
 - [*] TOC和AI assitant界面全屏显示
 - [*] 移动hightlight sentence句子的时候，暂停TTS，以免导致TTS开始读对移动过程中的所有句子
 - [x] 实现用MacBook的触控板滚动屏幕
@@ -38,7 +39,7 @@ P1 level
 
 P2 level
 - [*] 在 Table of contents 页面里面，点击ESC按键不会关闭TOC界面，但是点击C按键会。
-- [ ] 在reader界面中，TTS每读完一个句子，屏幕都会闪烁一次。
+- [*] 在reader界面中，TTS每读完一个句子，屏幕都会闪烁一次。
 - [*] AI assitant UI中每输入一个文字，界面就会闪烁一次
 
 

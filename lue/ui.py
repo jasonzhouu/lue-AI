@@ -7,7 +7,6 @@ from . import content_parser
 from .ui_theme import ICONS, COLORS
 import re
 from .ui_utils import get_terminal_size, create_progress_bar, truncate_text
-from .ai_assistant_ui import render_ai_assistant
 from .table_of_contents_ui import render_table_of_contents
 
 
@@ -457,5 +456,3 @@ async def display_ui(reader):
 # The function is imported at the top of the file
 
 
-# AI assistant rendering is now handled by ai_assistant_ui module
-# The function is imported at the top of the file

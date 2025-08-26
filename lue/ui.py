@@ -7,7 +7,6 @@ from . import content_parser
 from .ui_theme import ICONS, COLORS
 import re
 from .ui_utils import get_terminal_size, create_progress_bar, truncate_text
-from .table_of_contents_ui import render_table_of_contents
 
 
 def _process_verse_markers(text):
@@ -452,7 +451,5 @@ async def display_ui(reader):
             pass
 
 
-# Table of contents rendering is now handled by table_of_contents_ui module
-# The function is imported at the top of the file
 
 

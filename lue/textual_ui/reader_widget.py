@@ -3,7 +3,7 @@ Reader widget for the Lue e-book reader Textual interface.
 Handles content display, progress tracking, and user interactions.
 """
 
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 from textual.widgets import Static, ProgressBar
 from textual.containers import Vertical, Horizontal
 from textual.reactive import reactive
@@ -12,7 +12,8 @@ from textual.app import ComposeResult
 from rich.text import Text
 from rich.console import Console
 
-from . import reader as lue_reader
+if TYPE_CHECKING:
+    from .. import reader as lue_reader
 
 
 class ReaderWidget(Static):
@@ -20,7 +21,7 @@ class ReaderWidget(Static):
     
     current_position = reactive((0, 0, 0))  # (chapter, paragraph, sentence)
     
-    def __init__(self, lue_instance: lue_reader.Lue):
+    def __init__(self, lue_instance: "lue_reader.Lue"):
         super().__init__()
         self.lue = lue_instance
         self.console = Console()
@@ -56,12 +57,12 @@ class ReaderWidget(Static):
             self.lue.ui_sentence_idx = self.lue.sentence_idx
             
             # Get terminal height for proper content sizing
-            from .ui import get_terminal_size, get_visible_content
+            from ..ui import get_terminal_size, get_visible_content
             _, height = get_terminal_size()
             
             # Ensure document layout is updated
             if not hasattr(self.lue, 'document_lines') or not self.lue.document_lines:
-                from .ui import update_document_layout
+                from ..ui import update_document_layout
                 update_document_layout(self.lue)
             
             # Use the original UI's get_visible_content which handles highlighting
@@ -220,7 +221,7 @@ class ReaderWidget(Static):
         """Find which sentence is at the given click position."""
         try:
             # Get terminal dimensions and visible content area
-            from .ui import get_terminal_size, get_visible_content
+            from ..ui import get_terminal_size, get_visible_content
             width, height = get_terminal_size()
             
             # Account for panel padding and borders
@@ -233,7 +234,7 @@ class ReaderWidget(Static):
             
             # Ensure we have document layout
             if not hasattr(self.lue, 'document_lines') or not self.lue.document_lines:
-                from .ui import update_document_layout
+                from ..ui import update_document_layout
                 update_document_layout(self.lue)
             
             # Get the visible content and find which line was clicked
@@ -268,8 +269,8 @@ class ReaderWidget(Static):
                                    line_idx: int, char_pos: int) -> int:
         """Find which sentence in a paragraph corresponds to the click position."""
         try:
-            from . import content_parser
-            from .ui import get_terminal_size
+            from .. import content_parser
+            from ..ui import get_terminal_size
             
             # Get the paragraph text
             if (chapter_idx >= len(self.lue.chapters) or 
@@ -321,7 +322,7 @@ class ReaderWidget(Static):
             paragraph = self.lue.chapters[chapter_idx][paragraph_idx]
             
             # Process verse markers like the UI does
-            from .ui import _process_verse_markers
+            from ..ui import _process_verse_markers
             styled_text = _process_verse_markers(paragraph)
             wrapped_lines = styled_text.wrap(self.lue.console, available_width)
             

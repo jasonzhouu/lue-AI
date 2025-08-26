@@ -3,6 +3,7 @@ AI Assistant modal for the Lue e-book reader Textual interface.
 Provides interactive AI assistance for understanding text content.
 """
 
+from typing import TYPE_CHECKING
 from textual.screen import ModalScreen
 from textual.containers import Container
 from textual.widgets import Static
@@ -10,7 +11,8 @@ from textual.binding import Binding
 from textual.app import ComposeResult
 from rich.text import Text
 
-from . import reader as lue_reader
+if TYPE_CHECKING:
+    from .. import reader as lue_reader
 
 
 class AIAssistantModal(ModalScreen):
@@ -22,7 +24,7 @@ class AIAssistantModal(ModalScreen):
         Binding("enter", "send_message", "Send"),
     ]
     
-    def __init__(self, lue_instance: lue_reader.Lue):
+    def __init__(self, lue_instance: "lue_reader.Lue"):
         super().__init__()
         self.lue = lue_instance
         self.input_buffer = ""

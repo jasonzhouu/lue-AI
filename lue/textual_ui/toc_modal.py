@@ -3,6 +3,7 @@ Table of Contents modal for the Lue e-book reader Textual interface.
 Enhanced TOC with better space utilization and navigation.
 """
 
+from typing import TYPE_CHECKING
 from textual.screen import ModalScreen
 from textual.containers import Container
 from textual.widgets import Static
@@ -10,7 +11,8 @@ from textual.binding import Binding
 from textual.app import ComposeResult
 from rich.text import Text
 
-from . import reader as lue_reader
+if TYPE_CHECKING:
+    from .. import reader as lue_reader
 
 
 class TOCModal(ModalScreen):
@@ -29,7 +31,7 @@ class TOCModal(ModalScreen):
         Binding("page_down", "page_down", "Page Down"),
     ]
     
-    def __init__(self, lue_instance: lue_reader.Lue):
+    def __init__(self, lue_instance: "lue_reader.Lue"):
         super().__init__()
         self.lue = lue_instance
         # Initialize selected chapter to current chapter
@@ -63,7 +65,7 @@ class TOCModal(ModalScreen):
             available_height = container.size.height - 4  # Account for title, footer, and borders
             
             # Get chapter titles using the existing content parser
-            from . import content_parser
+            from .. import content_parser
             file_path = getattr(self.lue, 'file_path', None)
             if hasattr(self.lue, 'chapters') and self.lue.chapters:
                 chapter_titles = content_parser.extract_chapter_titles(self.lue.chapters, file_path)
@@ -167,7 +169,7 @@ class TOCModal(ModalScreen):
     def action_cursor_down(self) -> None:
         """Move selection down with scrolling support."""
         # Get actual chapter count from titles
-        from . import content_parser
+        from .. import content_parser
         file_path = getattr(self.lue, 'file_path', None)
         if hasattr(self.lue, 'chapters') and self.lue.chapters:
             chapter_titles = content_parser.extract_chapter_titles(self.lue.chapters, file_path)
@@ -186,7 +188,7 @@ class TOCModal(ModalScreen):
         
     def action_go_to_bottom(self) -> None:
         """Jump to last chapter."""
-        from . import content_parser
+        from .. import content_parser
         file_path = getattr(self.lue, 'file_path', None)
         if hasattr(self.lue, 'chapters') and self.lue.chapters:
             chapter_titles = content_parser.extract_chapter_titles(self.lue.chapters, file_path)
@@ -208,7 +210,7 @@ class TOCModal(ModalScreen):
         
     def action_page_down(self) -> None:
         """Move selection down by a page."""
-        from . import content_parser
+        from .. import content_parser
         file_path = getattr(self.lue, 'file_path', None)
         if hasattr(self.lue, 'chapters') and self.lue.chapters:
             chapter_titles = content_parser.extract_chapter_titles(self.lue.chapters, file_path)

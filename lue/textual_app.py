@@ -12,9 +12,9 @@ from textual.binding import Binding
 from . import reader as lue_reader
 from .tts.base import TTSBase
 from .textual_adapter import create_textual_adapter
-from .reader_widget import ReaderWidget
-from .toc_modal import TOCModal
-from .ai_modal import AIAssistantModal
+from .textual_ui.reader_widget import ReaderWidget
+from .textual_ui.toc_modal import TOCModal
+from .textual_ui.ai_modal import AIAssistantModal
 
 
 class LueApp(App):
@@ -337,8 +337,8 @@ class LueApp(App):
             self.lue.loop = asyncio.get_event_loop()
             
             # Initialize document layout
-            from .ui import update_document_layout
-            update_document_layout(self.lue)
+            from . import ui
+            ui.update_document_layout(self.lue)
             
             # Initialize TTS
             if not self._tts_initialized:

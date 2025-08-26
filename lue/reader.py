@@ -180,55 +180,6 @@ class Lue:
         available_height = max(1, height - 4)
         return self.scroll_offset <= target_line < self.scroll_offset + available_height
     
-    def _is_position_near_current_reading(self, click_pos, threshold=3):
-        """Check if a clicked position is near the current reading position."""
-        try:
-            current_chapter, current_paragraph, current_sentence = self.chapter_idx, self.paragraph_idx, self.sentence_idx
-            click_chapter, click_paragraph, click_sentence = click_pos
-            
-            # If we're in a different chapter, it's not near
-            if click_chapter != current_chapter:
-                return False
-                
-            # If we're in the same paragraph, check if within threshold sentences
-            if click_paragraph == current_paragraph:
-                return abs(click_sentence - current_sentence) <= threshold
-                
-            # If we're in adjacent paragraphs, check if near the beginning/end
-            if abs(click_paragraph - current_paragraph) == 1:
-                if click_paragraph < current_paragraph:  # Previous paragraph
-                    # Check if click is near the end of the previous paragraph
-                    sentences_in_paragraph = len(self.chapters[click_chapter][click_paragraph].split('. '))
-                    return click_sentence >= max(0, sentences_in_paragraph - threshold)
-                else:  # Next paragraph
-                    # Check if click is near the beginning of the next paragraph
-                    return click_sentence <= threshold
-                    
-            return False
-        except (IndexError, AttributeError, TypeError):
-            return False
-    
-    def _is_paragraph_near_current_reading(self, direction):
-        """Check if navigating to the next/previous paragraph is near the current reading position."""
-        try:
-            current_chapter, current_paragraph, current_sentence = self.chapter_idx, self.paragraph_idx, self.sentence_idx
-            
-            if direction == 'next':
-                # If we're not at the beginning of the current paragraph, it's not near
-                if current_sentence > 0:
-                    return False
-                # If we're at the beginning of the current paragraph, next paragraph is near
-                return True
-            else:  # direction == 'prev'
-                # If we're not at the end of the current paragraph, it's not near
-                sentences_in_paragraph = len(self.chapters[current_chapter][current_paragraph].split('. '))
-                if current_sentence < sentences_in_paragraph - 1:
-                    return False
-                # If we're at the end of the current paragraph, previous paragraph is near
-                return True
-        except (IndexError, AttributeError, TypeError):
-            return False
-
     def _scroll_to_position(self, chapter_idx, paragraph_idx, sentence_idx, smooth=True):
         if not smooth and self._is_position_visible(chapter_idx, paragraph_idx, sentence_idx): return
         position_key = (chapter_idx, paragraph_idx, sentence_idx)
@@ -302,160 +253,6 @@ class Lue:
                         if start_char <= char_pos_in_para <= end_char:
                             return (chap_idx, para_idx, sent_idx)
         return None
-
-    def _find_char_position_at_click(self, click_x, click_y):
-        """Find the exact character position at a click location."""
-        width, height = ui.get_terminal_size()
-        available_height = max(1, height - 4)
-        content_y, content_x = click_y - 3, click_x - 5
-        if not (0 <= content_y < available_height): 
-            return None
-        
-        clicked_line = int(self.scroll_offset) + content_y
-        if clicked_line >= len(self.document_lines): 
-            return None
-            
-        # Clamp content_x to the actual line length
-        if clicked_line < len(self.document_lines):
-            line_text = self.document_lines[clicked_line].plain
-            content_x = min(content_x, len(line_text))
-        
-        return (clicked_line, content_x)
-
-    def _is_click_on_text(self, click_x, click_y):
-        """Check if click is on the text area."""
-        width, height = ui.get_terminal_size()
-        
-        # The text area is within the panel.
-        # Based on _find_sentence_at_click, content starts at y=3 and x=5.
-        text_area_top = 3
-        text_area_bottom = height - 2 # subtitle and border
-        
-        text_area_left = 5
-        text_area_right = width - 5
-        
-        return (text_area_left <= click_x <= text_area_right and
-                text_area_top <= click_y <= text_area_bottom)
-
-    def _is_click_on_progress_bar(self, click_x, click_y):
-        """Check if click is on the progress bar area."""
-        width, height = ui.get_terminal_size()
-        
-        # Progress bar is in the title area (y=1, top border of panel)
-        if click_y != 1:
-            return False
-        
-        # Calculate exact progress bar position using same logic as display_ui
-        progress_percent = self._calculate_ui_progress_percentage()
-        progress_bar_width = 10
-        filled_blocks = int((progress_percent / 100) * progress_bar_width)
-        empty_blocks = progress_bar_width - filled_blocks
-        progress_bar = "▓" * filled_blocks + "░" * empty_blocks
-        
-        percentage_text = f"{int(progress_percent)}% {progress_bar}"
-        available_width = width - len(percentage_text) - 6
-        
-        if len(self.book_title) > available_width:
-            title_text = f"{self.book_title[:available_width-3]}..."
-        else:
-            title_text = self.book_title
-        
-        used_space = len(title_text) + len(percentage_text) + 2
-        remaining_space = width - used_space - 6
-        connecting_line = "─" * max(0, remaining_space)
-        
-        # Calculate the exact position of the progress bar
-        # Format: "{title} {connecting_line} {percentage}% {progress_bar}"
-        # Account for panel border (3 chars from left edge)
-        progress_bar_start_x = 3 + len(title_text) + 1 + len(connecting_line) + 1 + len(f"{int(progress_percent)}% ")
-        progress_bar_end_x = progress_bar_start_x + progress_bar_width
-        
-        return progress_bar_start_x <= click_x < progress_bar_end_x
-
-    def _handle_progress_bar_click(self, click_x, click_y):
-        """Handle click on progress bar to jump to position."""
-        width, height = ui.get_terminal_size()
-        
-        # Calculate exact progress bar position using same logic as display_ui
-        progress_percent = self._calculate_ui_progress_percentage()
-        progress_bar_width = 10
-        filled_blocks = int((progress_percent / 100) * progress_bar_width)
-        empty_blocks = progress_bar_width - filled_blocks
-        progress_bar = "▓" * filled_blocks + "░" * empty_blocks
-        
-        percentage_text = f"{int(progress_percent)}% {progress_bar}"
-        available_width = width - len(percentage_text) - 6
-        
-        if len(self.book_title) > available_width:
-            title_text = f"{self.book_title[:available_width-3]}..."
-        else:
-            title_text = self.book_title
-        
-        used_space = len(title_text) + len(percentage_text) + 2
-        remaining_space = width - used_space - 6
-        connecting_line = "─" * max(0, remaining_space)
-        
-        # Calculate the exact position of the progress bar
-        # Format: "{title} {connecting_line} {percentage}% {progress_bar}"
-        # Account for panel border (3 chars from left edge)
-        progress_bar_start_x = 3 + len(title_text) + 1 + len(connecting_line) + 1 + len(f"{int(progress_percent)}% ")
-        
-        # Check if click is within the actual progress bar
-        if progress_bar_start_x <= click_x < progress_bar_start_x + progress_bar_width:
-            # Calculate clicked position within progress bar (0-based index)
-            click_position_in_bar = click_x - progress_bar_start_x
-            
-            # Each character in the progress bar represents an equal portion of the document
-            # Convert to percentage (0-100)
-            click_percentage = (click_position_in_bar / (progress_bar_width - 1)) * 100
-            click_percentage = max(0, min(100, click_percentage))  # Clamp to 0-100
-            
-            # Convert percentage to scroll position
-            available_height = max(1, height - 4)
-            max_scroll = max(0, len(self.document_lines) - available_height)
-            target_scroll = (click_percentage / 100) * max_scroll
-            
-            # Jump to that position
-            self.auto_scroll_enabled = False
-            self.scroll_offset = self.target_scroll_offset = max(0, min(target_scroll, max_scroll))
-            
-            if self.smooth_scroll_task and not self.smooth_scroll_task.done():
-                self.smooth_scroll_task.cancel()
-            
-            self._save_extended_progress()
-            return True
-        
-        return False
-
-    def _is_click_in_selection(self, click_pos):
-        """Check if a click position is within the current selection."""
-        if not self.selection_active or not self.selection_start or not self.selection_end or not click_pos:
-            return False
-        
-        click_line, click_char = click_pos
-        start_line, start_char = self.selection_start
-        end_line, end_char = self.selection_end
-        
-        # Ensure start comes before end
-        if start_line > end_line or (start_line == end_line and start_char > end_char):
-            start_line, start_char, end_line, end_char = end_line, end_char, start_line, start_char
-        
-        # Check if click is within selection bounds
-        if start_line <= click_line <= end_line:
-            if start_line == end_line:
-                # Single line selection
-                return start_char <= click_char <= end_char
-            elif click_line == start_line:
-                # First line of multi-line selection
-                return click_char >= start_char
-            elif click_line == end_line:
-                # Last line of multi-line selection
-                return click_char <= end_char
-            else:
-                # Middle line of multi-line selection
-                return True
-        
-        return False
 
     def _clear_selection(self):
         """Clear the current text selection."""
@@ -617,14 +414,6 @@ class Lue:
                 last_pos_before_view = pos
         return last_pos_before_view
     
-    def _calculate_progress_percentage(self):
-        if self.total_sentences == 0: return 100.0
-        sentences_read = sum(len(content_parser.split_into_sentences(p)) for i in range(self.chapter_idx) for p in self.chapters[i])
-        if self.chapter_idx < len(self.chapters):
-            sentences_read += sum(len(content_parser.split_into_sentences(self.chapters[self.chapter_idx][i])) for i in range(self.paragraph_idx))
-            sentences_read += self.sentence_idx
-        return (sentences_read / self.total_sentences) * 100
-
     def _calculate_ui_progress_percentage(self):
         """Calculate progress percentage based on current scroll position."""
         if len(self.document_lines) == 0:
@@ -711,48 +500,6 @@ class Lue:
             # Check if we're still running and not paused after the delay
             if not self.is_paused and self.running:
                 await audio.play_from_current_position(self)
-
-    def _toggle_table_of_contents(self):
-        """Legacy method - TOC now handled by Textual interface."""
-        pass
-
-    def _navigate_toc_up(self):
-        """Legacy method - TOC navigation now handled by Textual interface."""
-        pass
-
-    def _navigate_toc_down(self):
-        """Legacy method - TOC navigation now handled by Textual interface."""
-        pass
-
-    def _jump_to_selected_chapter(self):
-        """Legacy method - chapter jumping now handled by Textual interface."""
-        pass
-
-    def _toggle_ai_assistant(self):
-        """Legacy method - AI assistant now handled by Textual interface."""
-        pass
-
-    def _update_ai_context(self):
-        """Update the AI context with current reading position."""
-        try:
-            from . import ai_assistant
-            # Get context from AI assistant module
-            context = ai_assistant.ai_assistant._get_current_context(self)
-            self.ai_current_context = context
-        except Exception as e:
-            self.ai_current_context = f"Error getting context: {str(e)}"
-
-    async def _send_ai_message(self):
-        """Legacy method - AI messaging now handled by Textual interface."""
-        pass
-
-    def _clear_ai_input(self):
-        """Legacy method - AI input now handled by Textual interface."""
-        pass
-
-    def _update_ai_display(self):
-        """Legacy method - AI display now handled by Textual interface."""
-        pass
 
     def _handle_page_scroll_immediate(self, direction):
         self.auto_scroll_enabled = False
@@ -1022,22 +769,6 @@ class Lue:
                 self._handle_move_to_end_immediate()
             elif cmd == 'copy_selection':
                 self._handle_copy_selection()
-            elif cmd == 'toggle_toc':
-                self._toggle_table_of_contents()
-            elif cmd == 'toc_up':
-                self._navigate_toc_up()
-            elif cmd == 'toc_down':
-                self._navigate_toc_down()
-            elif cmd == 'toc_select':
-                self._jump_to_selected_chapter()
-            elif cmd == 'toggle_ai_assistant':
-                self._toggle_ai_assistant()
-            elif cmd == 'ai_send_message':
-                asyncio.create_task(self._send_ai_message())
-            elif cmd == 'ai_clear_input':
-                self._clear_ai_input()
-            elif cmd == 'ai_update_display':
-                self._update_ai_display()
             elif cmd == 'refresh_ui':
                 # Legacy UI rendering removed - use Textual interface instead
                 pass

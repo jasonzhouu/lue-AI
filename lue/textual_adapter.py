@@ -3,7 +3,7 @@ Adapter layer to bridge existing Lue reader functionality with Textual interface
 This preserves all existing methods while adding Textual-compatible interfaces.
 """
 
-from typing import Optional, Tuple, List
+from typing import List
 from rich.text import Text
 from . import content_parser
 

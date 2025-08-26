@@ -25,7 +25,8 @@ def render_table_of_contents(reader, selected_chapter_idx=0):
         console = Console()
 
         # Extract chapter titles
-        chapter_titles = content_parser.extract_chapter_titles(reader.chapters)
+        file_path = getattr(reader, 'file_path', None)
+        chapter_titles = content_parser.extract_chapter_titles(reader.chapters, file_path)
 
         # Clear screen and add top padding to move interface down
         console.clear()
@@ -140,7 +141,8 @@ def render_table_of_contents(reader, selected_chapter_idx=0):
         console.clear()
         console.print(f"\nTable of Contents (Error in rendering: {e})", style="red")
         console.print("─" * 50)
-        chapter_titles = content_parser.extract_chapter_titles(reader.chapters)
+        file_path = getattr(reader, 'file_path', None)
+        chapter_titles = content_parser.extract_chapter_titles(reader.chapters, file_path)
         for i, (chapter_idx, title) in enumerate(chapter_titles):
             marker = "▶ " if i == selected_chapter_idx else "  "
             style = "bold magenta" if i == selected_chapter_idx else "white"

@@ -21,7 +21,8 @@ def get_current_context(reader):
         current_sentence = sentences[reader.ui_sentence_idx] if reader.ui_sentence_idx < len(sentences) else ""
 
         # Get chapter title if available
-        chapter_titles = content_parser.extract_chapter_titles(reader.chapters)
+        file_path = getattr(reader, 'file_path', None)
+        chapter_titles = content_parser.extract_chapter_titles(reader.chapters, file_path)
         chapter_title = ""
         for idx, title in chapter_titles:
             if idx == reader.ui_chapter_idx:

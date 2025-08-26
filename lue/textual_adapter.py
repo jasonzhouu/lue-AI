@@ -182,7 +182,8 @@ class TextualReaderAdapter:
         try:
             from . import content_parser
             # Use the proper extract_chapter_titles function that returns (index, title) tuples
-            chapter_title_tuples = content_parser.extract_chapter_titles(self.lue.chapters)
+            file_path = getattr(self.lue, 'file_path', None)
+            chapter_title_tuples = content_parser.extract_chapter_titles(self.lue.chapters, file_path)
             # Extract just the titles for the list
             return [title for idx, title in chapter_title_tuples]
         except Exception:

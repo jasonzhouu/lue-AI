@@ -1072,11 +1072,19 @@ def _parse_raw_markdown(md_content):
 
 
 
-def extract_chapter_titles(chapters):
+def extract_chapter_titles(chapters, file_path=None):
     """
     Extract chapter titles from the chapters data structure.
+    For EPUB files, tries to use the actual TOC structure first.
     Returns a list of tuples: (chapter_index, title)
     """
+    # Try to extract from EPUB TOC if file path is provided and it's an EPUB
+    if file_path and file_path.lower().endswith('.epub'):
+        epub_titles = _extract_epub_toc_titles(file_path, len(chapters))
+        if epub_titles:
+            return epub_titles
+    
+    # Fallback to pattern matching for non-EPUB files or when EPUB TOC extraction fails
     chapter_titles = []
     
     for chapter_idx, chapter in enumerate(chapters):
@@ -1122,6 +1130,112 @@ def extract_chapter_titles(chapters):
         chapter_titles.append((chapter_idx, title))
     
     return chapter_titles
+
+
+def _extract_epub_toc_titles(file_path, num_chapters):
+    """
+    Extract chapter titles from EPUB's actual table of contents structure.
+    Returns a list of tuples: (chapter_index, title) or None if extraction fails.
+    """
+    try:
+        import ebooklib
+        from ebooklib import epub
+    except ImportError:
+        return None
+    
+    try:
+        # Open EPUB file
+        book = epub.read_epub(file_path)
+        
+        # Get the table of contents
+        toc_items = []
+        
+        # Method 1: Try to get TOC from book.toc
+        if hasattr(book, 'toc') and book.toc:
+            toc_items = _flatten_toc_structure(book.toc)
+        
+        # Method 2: If no TOC, try to get from NCX file
+        if not toc_items:
+            for item in book.get_items():
+                if item.get_type() == ebooklib.ITEM_NAVIGATION:
+                    # Try to parse navigation document
+                    try:
+                        from bs4 import BeautifulSoup
+                        nav_content = item.get_content().decode('utf-8', errors='ignore')
+                        soup = BeautifulSoup(nav_content, 'html.parser')
+                        
+                        # Look for nav elements or ol/li structures
+                        nav_elements = soup.find_all(['nav', 'ol'])
+                        for nav_elem in nav_elements:
+                            links = nav_elem.find_all('a')
+                            for link in links:
+                                title = link.get_text(strip=True)
+                                if title and len(title) > 1:
+                                    toc_items.append(title)
+                    except Exception:
+                        continue
+        
+        # Method 3: If still no TOC, try to get from spine items with titles
+        if not toc_items:
+            spine_items = book.get_items_of_type(ebooklib.ITEM_DOCUMENT)
+            for item in spine_items:
+                # Try to get title from item properties or content
+                title = getattr(item, 'title', None) or item.get_name()
+                if title:
+                    # Clean up the title
+                    title = title.replace('.xhtml', '').replace('.html', '')
+                    title = title.replace('_', ' ').replace('-', ' ')
+                    title = ' '.join(word.capitalize() for word in title.split())
+                    toc_items.append(title)
+        
+        # Convert to the expected format and limit to actual number of chapters
+        if toc_items:
+            chapter_titles = []
+            for i in range(min(len(toc_items), num_chapters)):
+                title = toc_items[i]
+                # Clean and format the title
+                if len(title) > 60:
+                    title = title[:57] + "..."
+                chapter_titles.append((i, title))
+            
+            # Fill remaining chapters with default titles if needed
+            for i in range(len(chapter_titles), num_chapters):
+                chapter_titles.append((i, f"Chapter {i + 1}"))
+            
+            return chapter_titles
+    
+    except Exception as e:
+        # If any error occurs, return None to fall back to pattern matching
+        pass
+    
+    return None
+
+
+def _flatten_toc_structure(toc):
+    """
+    Flatten the hierarchical TOC structure into a simple list of titles.
+    """
+    titles = []
+    
+    def extract_titles(items):
+        for item in items:
+            if hasattr(item, 'title'):
+                titles.append(item.title)
+            elif hasattr(item, '__iter__') and not isinstance(item, str):
+                # Handle nested structures
+                try:
+                    extract_titles(item)
+                except (TypeError, AttributeError):
+                    pass
+            elif isinstance(item, str):
+                titles.append(item)
+    
+    try:
+        extract_titles(toc)
+    except Exception:
+        pass
+    
+    return titles
 
 
 def _extract_content_html(file_path, console):

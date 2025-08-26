@@ -13,7 +13,7 @@ from textual.binding import Binding
 from textual.reactive import reactive
 from textual.message import Message
 from textual import on
-from textual.events import Click
+from textual.events import Click, MouseScrollUp, MouseScrollDown
 from rich.text import Text
 from rich.console import Console
 
@@ -191,6 +191,34 @@ class ReaderWidget(Static):
                     
         except Exception as e:
             # Graceful error handling
+            pass
+            
+    def on_mouse_scroll_up(self, event: MouseScrollUp) -> None:
+        """Handle trackpad/mouse wheel scroll up events."""
+        try:
+            # Scroll up by calling the lue instance's scroll method
+            if hasattr(self.lue, 'scroll_up'):
+                self.lue.scroll_up()
+                # Update the display
+                self.update_content_display()
+                # Pause TTS to prevent reading during scrolling
+                if hasattr(self.lue, 'is_paused'):
+                    self.lue.is_paused = True
+        except Exception:
+            pass
+            
+    def on_mouse_scroll_down(self, event: MouseScrollDown) -> None:
+        """Handle trackpad/mouse wheel scroll down events."""
+        try:
+            # Scroll down by calling the lue instance's scroll method
+            if hasattr(self.lue, 'scroll_down'):
+                self.lue.scroll_down()
+                # Update the display
+                self.update_content_display()
+                # Pause TTS to prevent reading during scrolling
+                if hasattr(self.lue, 'is_paused'):
+                    self.lue.is_paused = True
+        except Exception:
             pass
             
     def _find_sentence_at_position(self, click_x: int, click_y: int) -> tuple[int, int, int] | None:

@@ -2,7 +2,6 @@
 
 ## P1 level
 - [ ] 快捷键i,m,u,n都没有效果。快捷键u,n是scroll up/down，但是不改变highlight的句子; i,m是上下滚动屏幕
-- [ ] 实现用MacBook的触控板滚动屏幕
 - [ ] 移动hightlight sentence句子的时候，暂停TTS，以免导致TTS开始读对移动过程中的所有句子
 - [ ] verse number的显示仍然存在问题。请使用最新安装的beautifulsoup4、ebooklib解决这个问题
 
@@ -12,6 +11,7 @@
 - [ ] 将progress bar放在reader界面右上角
 
 ## DONE
+- [x] 实现用MacBook的触控板滚动屏幕
 - [x] 鼠标点击sentence的时候，可以将highlight的句子改成当前点击的句子
 - [x] 鼠标点击highlighg句子，在点击段落的第一个句子时候work，但是点击同一个段落后面的句子不work
 - [*] TOC的列表和epub的目录不一致。

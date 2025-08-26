@@ -108,16 +108,12 @@ pip install .
 For local/offline TTS capabilities:
 
 ```bash
-# 1. Edit requirements.txt - uncomment Kokoro packages:
-kokoro>=0.9.4
-soundfile>=0.13.1
-huggingface-hub>=0.34.4
+# 1. Install system dependencies
+brew install ffmpeg espeak-ng                       # on Mac 🍏
+# sudo apt install ffmpeg espeak-ng                 # on Ubuntu/Debian 🐧
 
-# 2. Install PyTorch
-# CPU version:
-pip install torch torchvision torchaudio
-# GPU version (CUDA):
-pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+# 2. Edit requirements.txt - uncomment Kokoro package:
+kokoro>=0.9.4
 
 # 3. Install updated requirements
 pip install -r requirements.txt

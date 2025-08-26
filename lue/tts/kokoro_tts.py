@@ -96,14 +96,14 @@ class KokoroTTS(TTSBase):
             if use_gpu:
                 device_to_try = "mps" if platform.system() == "Darwin" else "cuda"
                 try:
-                    pipeline = self.KPipeline(repo_id="hexgrad/Kokoro-82M", device=device_to_try, lang_code=self.lang)
+                    pipeline = self.KPipeline(lang_code=self.lang, device=device_to_try)
                     device_used = device_to_try
                 except Exception as gpu_error:
                     error_msg = f"Failed to initialize on GPU ({device_to_try}): {gpu_error}"
             
             if pipeline is None:
                 try:
-                    pipeline = self.KPipeline(repo_id="hexgrad/Kokoro-82M", device="cpu", lang_code=self.lang)
+                    pipeline = self.KPipeline(lang_code=self.lang, device="cpu")
                     device_used = "cpu"
                 except Exception as cpu_error:
                     error_msg = f"Failed to initialize on CPU: {cpu_error}"

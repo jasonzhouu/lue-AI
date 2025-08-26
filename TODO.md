@@ -8,6 +8,7 @@
 - [ ] 在reader界面左上角显示书名，将progress bar放在reader界面右上角
 
 ## DONE
+- [x] 现在 textual_app.py 越来越大了，需要重新组织一下代码：将独立的代码放在单独的文件
 - [*] TOC界面的高度太低，导致留出来太多空白
 - [*] TOC和AI assitant界面全屏显示
 - [*] 移动hightlight sentence句子的时候，暂停TTS，以免导致TTS开始读对移动过程中的所有句子

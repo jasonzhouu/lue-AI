@@ -10,6 +10,9 @@ textual>=0.53.0
 # Default TTS model
 edge-tts>=7.2.0
 
+# For kokoro TTS
+# kokoro>=0.9.4
+
 # For Google Cloud TTS:
 google-cloud-texttospeech>=2.27.0
 

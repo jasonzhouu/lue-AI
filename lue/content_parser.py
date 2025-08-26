@@ -7,7 +7,6 @@ from striprtf.striprtf import rtf_to_text
 import subprocess
 from html.parser import HTMLParser
 from html import unescape
-from audiblez.core import find_document_chapters_and_extract_texts, find_good_chapters
 
 
 def split_into_sentences(paragraph: str) -> list[str]:
@@ -430,7 +429,8 @@ def _extract_content_epub(file_path, console):
         return []
     
     try:
-        # Use audiblez approach for smart chapter extraction
+        # Use audiblez approach for smart chapter extraction (lazy import)
+        from audiblez.core import find_document_chapters_and_extract_texts, find_good_chapters
         document_chapters = find_document_chapters_and_extract_texts(book)
         good_chapters = find_good_chapters(document_chapters)
         

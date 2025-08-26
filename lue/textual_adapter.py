@@ -178,15 +178,16 @@ class TextualReaderAdapter:
             return 0.0
     
     def get_chapter_titles(self) -> List[str]:
-        """Get list of chapter titles."""
+        """Get list of chapter titles using proper content parser."""
         try:
-            if hasattr(self.lue, 'extract_chapter_titles'):
-                return self.lue.extract_chapter_titles()
-            else:
-                # Fallback: generate basic titles
-                return [f"Chapter {i+1}" for i in range(len(self.lue.chapters))]
+            from . import content_parser
+            # Use the proper extract_chapter_titles function that returns (index, title) tuples
+            chapter_title_tuples = content_parser.extract_chapter_titles(self.lue.chapters)
+            # Extract just the titles for the list
+            return [title for idx, title in chapter_title_tuples]
         except Exception:
-            return ["Chapter 1"]
+            # Fallback: generate basic titles
+            return [f"Chapter {i+1}" for i in range(len(self.lue.chapters))]
     
     def get_current_sentence(self) -> str:
         """Get the current sentence text."""

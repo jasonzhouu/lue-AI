@@ -131,6 +131,14 @@ class LueApp(App):
         # Initialize TTS and AI in background
         asyncio.create_task(self._initialize_services())
         
+    async def on_unmount(self) -> None:
+        """Handle app shutdown by calling lue's shutdown method."""
+        try:
+            if hasattr(self.lue, '_shutdown'):
+                await self.lue._shutdown()
+        except Exception:
+            pass
+        
     # Navigation actions
     def action_prev_paragraph(self) -> None:
         """Move to previous paragraph."""

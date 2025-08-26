@@ -6,9 +6,9 @@
 
 ## P2 level
 - [ ] 在reader界面左上角显示书名，将progress bar放在reader界面右上角
-- [ ] 退出程序的时候，停止TTS的播放
 
 ## DONE
+- [*] 退出程序的时候，停止TTS的播放
 - [x] 现在 textual_app.py 越来越大了，需要重新组织一下代码：将独立的代码放在单独的文件
 - [*] TOC界面的高度太低，导致留出来太多空白
 - [*] TOC和AI assitant界面全屏显示

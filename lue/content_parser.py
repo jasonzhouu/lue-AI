@@ -7,7 +7,7 @@ from striprtf.striprtf import rtf_to_text
 import subprocess
 from html.parser import HTMLParser
 from html import unescape
-from audiblez import audiblez
+from audiblez.core import find_document_chapters_and_extract_texts, find_good_chapters
 
 
 def split_into_sentences(paragraph: str) -> list[str]:
@@ -413,7 +413,7 @@ def extract_content(file_path, console):
         return []
 
 def _extract_content_epub(file_path, console):
-    """Extract content from EPUB using ebooklib and BeautifulSoup for professional parsing"""
+    """Extract content from EPUB using enhanced audiblez-inspired approach"""
     try:
         import ebooklib
         from ebooklib import epub
@@ -429,37 +429,35 @@ def _extract_content_epub(file_path, console):
         console.print(f"[bold red]Error: Failed to open EPUB file: {e}[/bold red]")
         return []
     
-    chapters = []
-    
     try:
-        # Get all items in reading order
-        spine_items = book.get_items_of_type(ebooklib.ITEM_DOCUMENT)
+        # Use audiblez approach for smart chapter extraction
+        document_chapters = find_document_chapters_and_extract_texts(book)
+        good_chapters = find_good_chapters(document_chapters)
         
-        for item in spine_items:
+        console.print(f"[green]Found {len(document_chapters)} total chapters, {len(good_chapters)} content chapters[/green]")
+        
+        if not good_chapters:
+            console.print("[bold red]Error: No readable content chapters found in EPUB[/bold red]")
+            return []
+        
+        # Convert audiblez chapters to our format with enhanced processing
+        chapters = []
+        for chapter in good_chapters:
             try:
-                # Get HTML content
-                content = item.get_content().decode('utf-8', errors='ignore')
+                # Get the raw extracted text from audiblez
+                raw_text = chapter.extracted_text
+                if not raw_text or len(raw_text.strip()) < 10:
+                    continue
                 
-                # Parse with BeautifulSoup
-                soup = BeautifulSoup(content, 'html.parser')
+                # Process the text to separate titles from content and improve formatting
+                processed_paragraphs = _process_audiblez_chapter_text(raw_text, chapter.get_name())
                 
-                # Remove script, style, and other non-content elements
-                for element in soup(['script', 'style', 'head', 'meta', 'link']):
-                    element.decompose()
-                
-                # Extract text content and group into proper paragraphs
-                paragraphs = _extract_paragraphs_from_soup(soup)
-                
-                if paragraphs:
-                    chapters.append(paragraphs)
+                if processed_paragraphs:
+                    chapters.append(processed_paragraphs)
                     
             except Exception as e:
-                console.print(f"[yellow]Warning: Error processing chapter {item.get_name()}: {e}[/yellow]")
+                console.print(f"[yellow]Warning: Error processing chapter {chapter.get_name()}: {e}[/yellow]")
                 continue
-        
-        if not chapters:
-            console.print("[bold red]Error: No readable content found in EPUB[/bold red]")
-            return []
         
         return chapters
         
@@ -468,174 +466,106 @@ def _extract_content_epub(file_path, console):
         return []
 
 
-def _extract_paragraphs_from_soup(soup):
-    """Extract and intelligently group text into paragraphs from BeautifulSoup object"""
-    paragraphs = []
+def _process_audiblez_chapter_text(raw_text, chapter_name):
+    """
+    Process audiblez extracted text to separate titles from content and improve formatting.
+    Addresses the issue where chapter titles get merged with content on the same line.
+    """
+    if not raw_text:
+        return []
+    
+    # Split text into lines and clean them
+    lines = [line.strip() for line in raw_text.split('\n') if line.strip()]
+    if not lines:
+        return []
+    
+    processed_paragraphs = []
     current_paragraph = []
     
-    # Get all elements in document order
-    all_elements = soup.find_all(['p', 'div', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'li', 'blockquote', 'span'])
-    
-    for element in all_elements:
-        # Skip elements that are footnotes (but preserve verse numbers)
-        if _is_footnote_element(element):
+    for i, line in enumerate(lines):
+        # Apply global TTS cleaning
+        cleaned_line = clean_text_for_tts(line)
+        if not cleaned_line or len(cleaned_line) < 3:
             continue
         
-        # Check if this is a verse number element
-        if _is_verse_number_element(element):
-            verse_text = element.get_text(strip=True)
-            if verse_text and verse_text.isdigit():
-                # Add verse number with special markers for display
-                current_paragraph.append(f"__VERSE__{verse_text}__/VERSE__")
-                continue
-            
-        # Get clean text from element
-        text = element.get_text(strip=True)
-        if not text or len(text) < 3:
-            continue
-            
-        # Clean the text
-        text = clean_text_for_tts(text)
-        if not text or len(text) < 3:
-            continue
+        # Detect if this line is likely a chapter title or heading
+        is_title = _is_likely_title(cleaned_line, i == 0)
         
-        # Handle different element types
-        tag_name = element.name.lower()
-        
-        if tag_name in ['h1', 'h2', 'h3', 'h4', 'h5', 'h6']:
-            # Headers - finish current paragraph and add header with spacing
+        if is_title:
+            # Finish current paragraph before adding title
             if current_paragraph:
-                paragraphs.append(' '.join(current_paragraph))
+                processed_paragraphs.append(' '.join(current_paragraph))
                 current_paragraph = []
-            paragraphs.append('')  # Empty line before header
-            paragraphs.append(text)
-            paragraphs.append('')  # Empty line after header
             
-        elif tag_name == 'li':
-            # List items - finish current paragraph and add list item
-            if current_paragraph:
-                paragraphs.append(' '.join(current_paragraph))
-                current_paragraph = []
-            paragraphs.append(f"• {text}")
+            # Add title with proper spacing
+            processed_paragraphs.append('')  # Empty line before title
+            processed_paragraphs.append(cleaned_line)
+            processed_paragraphs.append('')  # Empty line after title
             
-        elif tag_name == 'blockquote':
-            # Blockquotes - finish current paragraph and add blockquote
-            if current_paragraph:
-                paragraphs.append(' '.join(current_paragraph))
-                current_paragraph = []
-            paragraphs.append(f"    {text}")
-            
-        elif tag_name == 'p':
-            # Paragraph elements - group sentences intelligently
-            sentences = split_into_sentences(text)
+        else:
+            # Regular content - split into sentences and group intelligently
+            sentences = split_into_sentences(cleaned_line)
             
             for sentence in sentences:
                 sentence = sentence.strip()
                 if sentence:
                     current_paragraph.append(sentence)
                     
-                    # Group 3-4 sentences into a paragraph for better reading flow
-                    if len(current_paragraph) >= 4:
-                        paragraphs.append(' '.join(current_paragraph))
+                    # Group 2-3 sentences per paragraph for better reading flow
+                    if len(current_paragraph) >= 3:
+                        processed_paragraphs.append(' '.join(current_paragraph))
                         current_paragraph = []
-            
-            # After processing all sentences in this <p>, check if we should break
-            # This prevents over-grouping across different <p> elements
-            if len(current_paragraph) >= 2:
-                paragraphs.append(' '.join(current_paragraph))
-                current_paragraph = []
-                        
-        elif tag_name == 'div':
-            # Div elements - more conservative, often represent paragraph breaks
-            sentences = split_into_sentences(text)
-            
-            # Finish current paragraph before processing div content
-            if current_paragraph:
-                paragraphs.append(' '.join(current_paragraph))
-                current_paragraph = []
-            
-            # Add div content as separate paragraph(s)
-            div_sentences = []
-            for sentence in sentences:
-                sentence = sentence.strip()
-                if sentence:
-                    div_sentences.append(sentence)
-                    
-                    # Group fewer sentences for divs
-                    if len(div_sentences) >= 3:
-                        paragraphs.append(' '.join(div_sentences))
-                        div_sentences = []
-            
-            # Add remaining sentences from div
-            if div_sentences:
-                paragraphs.append(' '.join(div_sentences))
-        
-        elif tag_name == 'span':
-            # Span elements - usually inline, add to current paragraph
-            sentences = split_into_sentences(text)
-            for sentence in sentences:
-                sentence = sentence.strip()
-                if sentence:
-                    current_paragraph.append(sentence)
     
-    # Add any remaining sentences as a paragraph
+    # Add any remaining sentences
     if current_paragraph:
-        paragraphs.append(' '.join(current_paragraph))
+        processed_paragraphs.append(' '.join(current_paragraph))
     
-    # Clean up empty paragraphs and excessive spacing
-    clean_paragraphs = []
+    # Clean up excessive empty lines
+    final_paragraphs = []
     empty_count = 0
     
-    for para in paragraphs:
-        if para.strip() == '':
+    for para in processed_paragraphs:
+        if para == '':
             empty_count += 1
             if empty_count <= 1:  # Allow only single empty lines
-                clean_paragraphs.append('')
+                final_paragraphs.append('')
         else:
             empty_count = 0
-            clean_paragraphs.append(para.strip())
+            final_paragraphs.append(para)
     
-    return [p for p in clean_paragraphs if p or len(clean_paragraphs) < 50]
+    return final_paragraphs
 
 
-def _is_verse_number_element(element):
-    """Check if an element is likely a verse number (should be preserved with markers)"""
-    # Check element attributes for verse-specific patterns
-    if element.get('class'):
-        class_names = ' '.join(element.get('class')).lower()
-        if 'verse' in class_names:
+def _is_likely_title(text, is_first_line):
+    """
+    Determine if a line of text is likely a chapter title or heading.
+    This helps separate titles from content to prevent them from being merged.
+    """
+    if not text:
+        return False
+    
+    text = text.strip()
+    
+    # Very short lines are likely titles
+    if len(text) < 50:
+        # Check for title patterns
+        if (text.isupper() or  # ALL CAPS
+            text.istitle() or  # Title Case
+            re.match(r'^Chapter\s+\d+', text, re.IGNORECASE) or  # "Chapter 1"
+            re.match(r'^\d+\.?\s+', text) or  # "1. Title" or "1 Title"
+            re.match(r'^[IVXLCDM]+\.?\s+', text, re.IGNORECASE) or  # Roman numerals
+            not text.endswith('.') and not text.endswith('!') and not text.endswith('?')):  # No ending punctuation
             return True
     
-    if element.get('id'):
-        element_id = element.get('id').lower()
-        if 'verse' in element_id:
-            return True
-    
-    # Check if element contains only short numeric content (likely verse numbers)
-    text = element.get_text(strip=True)
-    if text and len(text) <= 3 and text.isdigit():
+    # First line of chapter is often a title if it's short and doesn't end with punctuation
+    if is_first_line and len(text) < 100 and not text.endswith(('.', '!', '?')):
         return True
     
-    return False
-
-def _is_footnote_element(element):
-    """Check if an element is likely a footnote (should be filtered out)"""
-    # Check element attributes
-    if element.get('class'):
-        class_names = ' '.join(element.get('class')).lower()
-        if any(keyword in class_names for keyword in ['footnote', 'note', 'ref', 'sup', 'sub']):
-            return True
-    
-    if element.get('id'):
-        element_id = element.get('id').lower()
-        if any(keyword in element_id for keyword in ['footnote', 'note', 'ref']):
-            return True
-    
-    # Check for common footnote patterns (but not verse numbers)
-    text = element.get_text(strip=True)
-    if text and len(text) <= 5:
-        if re.match(r'^[*†‡§¶]+$', text):  # Footnote symbols only
-            return True
+    # Lines that are clearly not titles
+    if (len(text) > 200 or  # Too long
+        text.endswith('.') or text.endswith('!') or text.endswith('?') or  # Ends with punctuation
+        ' and ' in text.lower() or ' the ' in text.lower() or ' of ' in text.lower()):  # Contains common sentence words
+        return False
     
     return False
 

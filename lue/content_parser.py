@@ -1188,19 +1188,17 @@ def _extract_epub_toc_titles(file_path, num_chapters):
                     title = ' '.join(word.capitalize() for word in title.split())
                     toc_items.append(title)
         
-        # Convert to the expected format and limit to actual number of chapters
+        # Convert to the expected format - only use actual TOC entries
         if toc_items:
             chapter_titles = []
-            for i in range(min(len(toc_items), num_chapters)):
+            # Only create entries for TOC items that exist, don't pad with defaults
+            actual_toc_count = min(len(toc_items), num_chapters)
+            for i in range(actual_toc_count):
                 title = toc_items[i]
                 # Clean and format the title
                 if len(title) > 60:
                     title = title[:57] + "..."
                 chapter_titles.append((i, title))
-            
-            # Fill remaining chapters with default titles if needed
-            for i in range(len(chapter_titles), num_chapters):
-                chapter_titles.append((i, f"Chapter {i + 1}"))
             
             return chapter_titles
     

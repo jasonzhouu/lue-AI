@@ -44,9 +44,21 @@ def test_toc_extraction(epub_file_path):
     print(f"\n4. Comparison:")
     print(f"   Old method found {len(old_titles)} titles")
     print(f"   New method found {len(new_titles)} titles")
+    print(f"   Actual chapters in content: {len(chapters)}")
+    
+    # Check for phantom chapters
+    phantom_chapters = len(old_titles) - len(chapters) if len(old_titles) > len(chapters) else 0
+    if phantom_chapters > 0:
+        print(f"   ⚠️  Old method has {phantom_chapters} phantom chapters")
+    
+    phantom_chapters_new = len(new_titles) - len(chapters) if len(new_titles) > len(chapters) else 0
+    if phantom_chapters_new > 0:
+        print(f"   ⚠️  New method has {phantom_chapters_new} phantom chapters")
+    elif len(new_titles) <= len(chapters):
+        print(f"   ✅ New method has no phantom chapters")
     
     if len(new_titles) > 0 and new_titles != old_titles:
-        print("✅ New method produced different (hopefully better) results!")
+        print("✅ New method produced different results!")
         return True
     else:
         print("⚠️  New method didn't improve results (may fallback to old method)")

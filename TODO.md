@@ -1,7 +1,7 @@
 # 引入 textual 之后带来的问题
 
 ## P1 level
-- [ ] 快捷键i,m,u,n都没有效果。快捷键u,n是scroll up/down，但是不改变highlight的句子; i,m是上下滚动屏幕
+- [ ] 快捷键i,m,u,n,b,n都没有效果。快捷键u,n是scroll up/down，但是不改变highlight的句子; i,m是上下滚动屏幕
 - [ ] verse number的显示仍然存在问题。请使用最新安装的beautifulsoup4、ebooklib解决这个问题
 
 ## P2 level

@@ -142,6 +142,8 @@ class ReaderWidget(Static):
                 
             if auto_scroll:
                 status_parts.append("📜 Auto")
+            else:
+                status_parts.append("📖 Manual")
                 
             status_text = " | ".join(status_parts)
             tts_widget.update(Text(status_text, style="dim"))

@@ -1,12 +1,15 @@
 # 引入 textual 之后带来的问题
 
 ## P1 level
-- [x] verse number的显示仍然存在问题。请使用最新安装的beautifulsoup4、ebooklib解决这个问题
-- [ ] 快捷键i,m,u,n都没有效果，用MacBook的触控板滚动屏幕也没有效果
+- [ ] 快捷键i,m,u,n都没有效果。快捷键u,n是scroll up/down，但是不改变highlight的句子; i,m是上下滚动屏幕
+- [ ] 实现用MacBook的触控板滚动屏幕
+- [x] 鼠标点击sentence的时候，可以将highlight的句子改成当前点击的句子
+- [ ] 移动hightlight sentence句子的时候，暂停TTS，以免导致TTS开始读对移动过程中的所有句子
+- [ ] verse number的显示仍然存在问题。请使用最新安装的beautifulsoup4、ebooklib解决这个问题
 
 ## P2 level
-- [ ] TOC和AI assitant界面没有全屏显示，只占用了一部分的屏幕
-- [ ] reader界面左上角没有显示书名
+- [ ] TOC和AI assitant界面全屏显示
+- [ ] 在reader界面左上角显示书名
 - [ ] 将progress bar放在reader界面右上角
 
 ## DONE
@@ -28,9 +31,9 @@
 
 P1 level
 
-- [ ] 在 table of contents UI 中，第一次点击上下按钮没有效果，而且最后选中的章节不是当前选中的章节，而是他下面的一个章节。
+- [*] 在 table of contents UI 中，第一次点击上下按钮没有效果，而且最后选中的章节不是当前选中的章节，而是他下面的一个章节。
 
-- [ ] 在 AI Assistant 的界面，当我退出这个界面，然后移动到下一句的时候，然后重新打开 AI Assistant 的界面，这时候显示的 Current Sentence 还是是现在的这个 sentence，但是和 AI 的交互的内容还是跟之前的那句话相关的。 
+- [*] 在 AI Assistant 的界面，当我退出这个界面，然后移动到下一句的时候，然后重新打开 AI Assistant 的界面，这时候显示的 Current Sentence 还是是现在的这个 sentence，但是和 AI 的交互的内容还是跟之前的那句话相关的。 
 
 
 P2 level

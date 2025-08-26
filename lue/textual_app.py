@@ -13,6 +13,7 @@ from textual.binding import Binding
 from textual.reactive import reactive
 from textual.message import Message
 from textual import on
+from textual.events import Click
 from rich.text import Text
 from rich.console import Console
 
@@ -155,6 +156,144 @@ class ReaderWidget(Static):
             getattr(self.lue, 'sentence_idx', 0)
         )
         self.update_tts_status()
+        
+    def on_click(self, event: Click) -> None:
+        """Handle mouse click events to change highlighted sentence."""
+        try:
+            # Get the content display widget
+            content_widget = self.query_one("#content-display", Static)
+            
+            # Get click coordinates relative to the content widget
+            click_x = event.x
+            click_y = event.y
+            
+            # Find which sentence was clicked based on coordinates
+            new_position = self._find_sentence_at_position(click_x, click_y)
+            if new_position:
+                chapter_idx, paragraph_idx, sentence_idx = new_position
+                
+                # Update the lue instance position
+                self.lue.chapter_idx = chapter_idx
+                self.lue.paragraph_idx = paragraph_idx
+                self.lue.sentence_idx = sentence_idx
+                
+                # Update UI position
+                self.lue.ui_chapter_idx = chapter_idx
+                self.lue.ui_paragraph_idx = paragraph_idx
+                self.lue.ui_sentence_idx = sentence_idx
+                
+                # Update the display
+                self.current_position = (chapter_idx, paragraph_idx, sentence_idx)
+                
+                # Pause TTS to prevent reading during navigation
+                if hasattr(self.lue, 'is_paused'):
+                    self.lue.is_paused = True
+                    
+        except Exception as e:
+            # Graceful error handling
+            pass
+            
+    def _find_sentence_at_position(self, click_x: int, click_y: int) -> tuple[int, int, int] | None:
+        """Find which sentence is at the given click position."""
+        try:
+            # Get terminal dimensions and visible content area
+            from .ui import get_terminal_size, get_visible_content
+            width, height = get_terminal_size()
+            
+            # Account for panel padding and borders
+            content_start_y = 2  # Panel title and top border
+            content_start_x = 5  # Left padding
+            
+            # Adjust click coordinates to content area
+            content_y = click_y - content_start_y
+            content_x = click_x - content_start_x
+            
+            # Ensure we have document layout
+            if not hasattr(self.lue, 'document_lines') or not self.lue.document_lines:
+                from .ui import update_document_layout
+                update_document_layout(self.lue)
+            
+            # Get the visible content and find which line was clicked
+            visible_lines = get_visible_content(self.lue)
+            
+            if content_y < 0 or content_y >= len(visible_lines):
+                return None
+                
+            # Calculate which document line was clicked
+            start_line = int(self.lue.scroll_offset)
+            clicked_document_line = start_line + content_y
+            
+            # Find the position that corresponds to this line
+            if clicked_document_line in self.lue.line_to_position:
+                base_position = self.lue.line_to_position[clicked_document_line]
+                chapter_idx, paragraph_idx, _ = base_position
+                
+                # Now we need to find which sentence within this paragraph
+                # was clicked based on the character position
+                sentence_idx = self._find_sentence_in_paragraph(
+                    chapter_idx, paragraph_idx, clicked_document_line, content_x
+                )
+                
+                return (chapter_idx, paragraph_idx, sentence_idx)
+                
+            return None
+            
+        except Exception:
+            return None
+            
+    def _find_sentence_in_paragraph(self, chapter_idx: int, paragraph_idx: int, 
+                                   line_idx: int, char_pos: int) -> int:
+        """Find which sentence in a paragraph corresponds to the click position."""
+        try:
+            from . import content_parser
+            
+            # Get the paragraph text
+            if (chapter_idx >= len(self.lue.chapters) or 
+                paragraph_idx >= len(self.lue.chapters[chapter_idx])):
+                return 0
+                
+            paragraph = self.lue.chapters[chapter_idx][paragraph_idx]
+            sentences = content_parser.split_into_sentences(paragraph)
+            
+            if not sentences:
+                return 0
+                
+            # For now, use a simple heuristic: divide the line into equal parts
+            # based on the number of sentences and see which part was clicked
+            from .ui import get_terminal_size
+            width, _ = get_terminal_size()
+            available_width = max(20, width - 10)
+            
+            # Calculate approximate character position within the paragraph
+            # This is a simplified approach - in a more sophisticated implementation,
+            # we would track exact character positions for each sentence
+            
+            # Get paragraph line range to determine which part of paragraph was clicked
+            if hasattr(self.lue, 'paragraph_line_ranges'):
+                paragraph_key = (chapter_idx, paragraph_idx)
+                if paragraph_key in self.lue.paragraph_line_ranges:
+                    para_start, para_end = self.lue.paragraph_line_ranges[paragraph_key]
+                    line_offset = line_idx - para_start
+                    
+                    # Estimate which sentence based on line position within paragraph
+                    total_lines = para_end - para_start + 1
+                    if total_lines > 0:
+                        line_ratio = line_offset / total_lines
+                        estimated_sentence = int(line_ratio * len(sentences))
+                        return min(estimated_sentence, len(sentences) - 1)
+            
+            # Fallback: use character position to estimate sentence
+            total_chars = sum(len(s) for s in sentences)
+            if total_chars > 0:
+                # Rough estimate based on character position
+                char_ratio = min(char_pos / available_width, 1.0)
+                estimated_sentence = int(char_ratio * len(sentences))
+                return min(estimated_sentence, len(sentences) - 1)
+                
+            return 0
+            
+        except Exception:
+            return 0
 
 
 class TOCModal(ModalScreen):

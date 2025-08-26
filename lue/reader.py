@@ -34,7 +34,7 @@ class Lue:
         self.playback_processes = []
         self.producer_task = None
         self.player_task = None
-        self.ui_update_task = None
+        self.background_task = None
         self.command_received_event = asyncio.Event()
         self.playback_finished_event = asyncio.Event()
         self.audio_queue = asyncio.Queue(maxsize=config.MAX_QUEUE_SIZE)
@@ -561,7 +561,7 @@ class Lue:
             self.resize_scheduled = True
             self.loop.call_soon_threadsafe(self._post_command_sync, '_resize')
 
-    async def _ui_update_loop(self):
+    async def _background_task_loop(self):
         last_update_time, last_sentence_pos, last_progress_save_time = 0, None, asyncio.get_event_loop().time()
         progress_save_interval = 5.0
         while self.running:
@@ -600,7 +600,7 @@ class Lue:
         signal.signal(signal.SIGTERM, signal.SIG_DFL)
         
         # Cancel all tasks including pending restart task
-        tasks_to_cancel = [self.smooth_scroll_task, self.ui_update_task, self.pending_restart_task]
+        tasks_to_cancel = [self.smooth_scroll_task, self.background_task, self.pending_restart_task]
         for task in tasks_to_cancel:
             if task and not task.done():
                 task.cancel()
@@ -664,7 +664,7 @@ class Lue:
         
         if not self.chapters or not self.chapters[0]: return
             
-        self.ui_update_task = asyncio.create_task(self._ui_update_loop())
+        self.background_task = asyncio.create_task(self._background_task_loop())
         
         await audio.play_from_current_position(self)
         

@@ -30,14 +30,6 @@ def _process_verse_markers(text):
     return styled_text
 
 
-def get_terminal_size():
-    """Get terminal size."""
-    try:
-        terminal_size = os.get_terminal_size()
-        return max(terminal_size.columns, 40), max(terminal_size.lines, 10)
-    except OSError:
-        return 80, 24
-
 def update_document_layout(reader):
     """Update the document layout based on terminal size."""
     reader.document_lines = []

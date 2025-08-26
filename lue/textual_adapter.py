@@ -235,11 +235,17 @@ class TextualReaderAdapter:
     async def get_ai_response(self, question: str) -> str:
         """Get AI response for the given question."""
         try:
-            if hasattr(self.lue, 'ai_assistant') and self.lue.ai_assistant:
-                current_sentence = self.get_current_sentence()
-                return await self.lue.ai_assistant.get_response(question, current_sentence)
+            from . import ai_assistant
+            # Use the global AI assistant instance
+            if ai_assistant.ai_assistant.initialized:
+                return await ai_assistant.ask_ai_question(self.lue, question)
             else:
-                return "AI Assistant not configured. Please set up Gemini API key."
+                # Try to initialize if not already done
+                success = await ai_assistant.initialize_ai_assistant()
+                if success:
+                    return await ai_assistant.ask_ai_question(self.lue, question)
+                else:
+                    return "AI Assistant not configured. Please check if GEMINI_API_KEY environment variable is set."
         except Exception as e:
             return f"Error getting AI response: {str(e)}"
     

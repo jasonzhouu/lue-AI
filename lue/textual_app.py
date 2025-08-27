@@ -33,7 +33,7 @@ class LueApp(App):
     }
     
     #tts-status {
-        width: 1fr;
+        width: 2fr;
         height: 1;
         text-align: right;
         padding: 0 1;

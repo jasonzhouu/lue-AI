@@ -172,16 +172,35 @@ def get_visible_content(reader):
                 sentence_text = sentences[reader.ui_sentence_idx]
                 # Process verse markers then apply highlight style
                 styled = _process_verse_markers(sentence_text)
+                # Center horizontally in focus mode
+                try:
+                    styled.justify = "center"
+                except Exception:
+                    pass
                 try:
                     styled.stylize(COLORS.TEXT_HIGHLIGHT, 0, len(styled.plain))
                 except Exception:
                     pass
                 wrapped = styled.wrap(reader.console, available_width)
+                # Center vertically: compute top/bottom padding in empty lines
+                lines_count = len(wrapped)
+                if lines_count < available_height:
+                    top_pad = (available_height - lines_count) // 2
+                    bottom_pad = available_height - lines_count - top_pad
+                else:
+                    top_pad = 0
+                    bottom_pad = 0
+                # Add top padding
+                for _ in range(top_pad):
+                    visible_lines.append(Text("", style=COLORS.TEXT_NORMAL))
                 # Apply verse numbering overlay per line as usual
                 for line in wrapped[:available_height]:
                     line = _apply_current_text_color(line)
                     line = _apply_verse_number_styling(line)
                     visible_lines.append(line)
+                # Add bottom padding
+                for _ in range(bottom_pad):
+                    visible_lines.append(Text("", style=COLORS.TEXT_NORMAL))
             # Pad/truncate to available height
             if len(visible_lines) > available_height:
                 visible_lines = visible_lines[:available_height]

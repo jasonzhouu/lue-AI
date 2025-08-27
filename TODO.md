@@ -12,6 +12,7 @@
 - [ ] 在reader界面左上角显示书名，将progress bar放在reader界面右上角
 
 ## DONE
+- [*] in focus mode, display the current sentence in the middle of the whole screen, and with larger font size
 - [x] new feature: toggle focus mode with shortcut (press 'f'), and only show the currently highlighted sentence in focus mode
 - [*] 退出程序的时候，停止TTS的播放
 - [x] 现在 textual_app.py 越来越大了，需要重新组织一下代码：将独立的代码放在单独的文件

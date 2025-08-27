@@ -162,6 +162,34 @@ def get_visible_content(reader):
     available_height = max(1, height - 4)
     available_width = max(20, width - 10)
 
+    # Focus mode: show only the currently highlighted sentence
+    if hasattr(reader, 'focus_mode') and reader.focus_mode:
+        visible_lines = []
+        try:
+            paragraph = reader.chapters[reader.ui_chapter_idx][reader.ui_paragraph_idx]
+            sentences = content_parser.split_into_sentences(paragraph)
+            if 0 <= reader.ui_sentence_idx < len(sentences):
+                sentence_text = sentences[reader.ui_sentence_idx]
+                # Process verse markers then apply highlight style
+                styled = _process_verse_markers(sentence_text)
+                try:
+                    styled.stylize(COLORS.TEXT_HIGHLIGHT, 0, len(styled.plain))
+                except Exception:
+                    pass
+                wrapped = styled.wrap(reader.console, available_width)
+                # Apply verse numbering overlay per line as usual
+                for line in wrapped[:available_height]:
+                    line = _apply_current_text_color(line)
+                    line = _apply_verse_number_styling(line)
+                    visible_lines.append(line)
+            # Pad/truncate to available height
+            if len(visible_lines) > available_height:
+                visible_lines = visible_lines[:available_height]
+            return visible_lines
+        except Exception:
+            # Fall back to normal rendering if anything goes wrong
+            pass
+
     start_line = int(reader.scroll_offset)
     end_line = min(len(reader.document_lines), start_line + available_height)
 

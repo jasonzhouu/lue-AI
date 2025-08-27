@@ -1,13 +1,18 @@
+注意运行 python之前，先运行 `source .env/bin/activate`
+
+
 # 引入 textual 之后带来的问题
 
 ## P1 level
 - [ ] 快捷键i,m,u,n,b,n都没有效果。快捷键u,n是scroll up/down，但是不改变highlight的句子; i,m是上下滚动屏幕
 - [ ] verse number的显示仍然存在问题。请使用最新安装的beautifulsoup4、ebooklib解决这个问题
+- [ ] TOC界面选择章节后，跳转到的章节和选择的章节不一致。我选择了第10章，但是没有跳转，而且TTS会开始阅读第8章。说明highlight的句子在第8章，但是reader没有滚动到第8章。
 
 ## P2 level
 - [ ] 在reader界面左上角显示书名，将progress bar放在reader界面右上角
 
 ## DONE
+- [x] new feature: toggle focus mode with shortcut (press 'f'), and only show the currently highlighted sentence in focus mode
 - [*] 退出程序的时候，停止TTS的播放
 - [x] 现在 textual_app.py 越来越大了，需要重新组织一下代码：将独立的代码放在单独的文件
 - [*] TOC界面的高度太低，导致留出来太多空白

@@ -97,6 +97,7 @@ class LueApp(App):
         # Controls
         Binding("p", "pause", "Pause/Resume"),
         Binding("a", "toggle_auto_scroll", "Auto Scroll"),
+        Binding("f", "toggle_focus_mode", "Focus Mode"),
         
         # Overlays
         Binding("c", "show_toc", "Table of Contents"),
@@ -276,6 +277,20 @@ class LueApp(App):
                 asyncio.create_task(self._handle_audio_state_change())
             
             self._update_tts_status()
+        except Exception:
+            pass
+            
+    def action_toggle_focus_mode(self) -> None:
+        """Toggle focus mode (show only highlighted sentence)."""
+        try:
+            # Toggle state on the model
+            current = getattr(self.lue, 'focus_mode', False)
+            self.lue.focus_mode = not current
+            
+            # Refresh display and status
+            reader_widget = self.query_one(ReaderWidget)
+            reader_widget.update_content_display()
+            reader_widget.update_tts_status()
         except Exception:
             pass
             

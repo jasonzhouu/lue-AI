@@ -124,6 +124,7 @@ class ReaderWidget(Static):
             is_paused = getattr(self.lue, 'is_paused', True)
             has_tts = getattr(self.lue, 'tts_model', None) is not None
             auto_scroll = getattr(self.lue, 'auto_scroll_enabled', False)
+            focus_mode = getattr(self.lue, 'focus_mode', False)
             
             status_parts = []
             if has_tts:
@@ -138,7 +139,10 @@ class ReaderWidget(Static):
                 status_parts.append("📜 Auto")
             else:
                 status_parts.append("📖 Manual")
-                
+            
+            if focus_mode:
+                status_parts.append("🎯 Focus")
+            
             status_text = " | ".join(status_parts)
             tts_widget.update(Text(status_text, style="dim"))
         except Exception:

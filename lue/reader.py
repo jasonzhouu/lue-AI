@@ -134,6 +134,9 @@ class Lue:
         self.resize_scheduled = False
         self.first_sentence_jump = False
         self._initial_load_complete = True
+        
+        # Focus mode (only show the currently highlighted sentence)
+        self.focus_mode = False
 
     async def initialize_tts(self) -> bool:
         """Initializes the selected TTS model."""

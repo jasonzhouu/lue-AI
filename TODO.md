@@ -12,6 +12,7 @@
 - [ ] 在reader界面左上角显示书名，将progress bar放在reader界面右上角
 
 ## DONE
+- [x] show short key (f) after the focus mode text hint. and apply same change to the other 2.
 - [*] Show focus mode text in the cornor of the screen in grayed style when it's not in focus mode, rather than totally hide it.
 - [*] in focus mode, display the current sentence in the middle of the whole screen, and with larger font size
 - [x] new feature: toggle focus mode with shortcut (press 'f'), and only show the currently highlighted sentence in focus mode

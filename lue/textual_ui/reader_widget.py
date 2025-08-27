@@ -136,15 +136,18 @@ class ReaderWidget(Static):
 
             # Playback status
             if has_tts:
-                append_part("⏸️ Paused" if is_paused else "▶️ Playing", style="dim")
+                # Show shortcut key hint (p)
+                append_part("⏸️ Paused (p)" if is_paused else "▶️ Playing (p)", style="dim")
             else:
                 append_part("🔇 No TTS", style="dim")
 
             # Scroll mode
-            append_part("📜 Auto" if auto_scroll else "📖 Manual", style="dim")
+            # Show shortcut key hint (a)
+            append_part("📜 Auto (a)" if auto_scroll else "📖 Manual (a)", style="dim")
 
             # Focus indicator: always show; bold when on, dim when off
-            append_part("🎯 Focus", style="bold" if focus_mode else "dim")
+            # Show shortcut key hint (f)
+            append_part("🎯 Focus (f)", style="bold" if focus_mode else "dim")
 
             tts_widget.update(status_text)
         except Exception:

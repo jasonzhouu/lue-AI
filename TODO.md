@@ -12,6 +12,7 @@
 - [ ] 在reader界面左上角显示书名，将progress bar放在reader界面右上角
 
 ## DONE
+- [*] Show focus mode text in the cornor of the screen in grayed style when it's not in focus mode, rather than totally hide it.
 - [*] in focus mode, display the current sentence in the middle of the whole screen, and with larger font size
 - [x] new feature: toggle focus mode with shortcut (press 'f'), and only show the currently highlighted sentence in focus mode
 - [*] 退出程序的时候，停止TTS的播放

@@ -126,25 +126,27 @@ class ReaderWidget(Static):
             auto_scroll = getattr(self.lue, 'auto_scroll_enabled', False)
             focus_mode = getattr(self.lue, 'focus_mode', False)
             
-            status_parts = []
+            # Build status line as Rich Text for per-part styling
+            status_text = Text()
+
+            def append_part(part: str, style: str = "dim"):
+                if status_text.plain:
+                    status_text.append(" | ", style="dim")
+                status_text.append(part, style=style)
+
+            # Playback status
             if has_tts:
-                if is_paused:
-                    status_parts.append("⏸️ Paused")
-                else:
-                    status_parts.append("▶️ Playing")
+                append_part("⏸️ Paused" if is_paused else "▶️ Playing", style="dim")
             else:
-                status_parts.append("🔇 No TTS")
-                
-            if auto_scroll:
-                status_parts.append("📜 Auto")
-            else:
-                status_parts.append("📖 Manual")
-            
-            if focus_mode:
-                status_parts.append("🎯 Focus")
-            
-            status_text = " | ".join(status_parts)
-            tts_widget.update(Text(status_text, style="dim"))
+                append_part("🔇 No TTS", style="dim")
+
+            # Scroll mode
+            append_part("📜 Auto" if auto_scroll else "📖 Manual", style="dim")
+
+            # Focus indicator: always show; bold when on, dim when off
+            append_part("🎯 Focus", style="bold" if focus_mode else "dim")
+
+            tts_widget.update(status_text)
         except Exception:
             pass
             

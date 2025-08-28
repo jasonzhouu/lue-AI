@@ -1,8 +1,10 @@
 <div align="center">
 
-  ### Lue — Terminal eBook Reader with Text-to-Speech
+  ### Lue AI — Terminal eBook Reader with Text-to-Speech
 
   A fast, cross-platform terminal eBook reader with seamless TTS, a rich Textual UI, and smooth, flicker-free reading.
+
+  Ask your book: built-in AI assistant (press `?`) answers questions about the current passage. Requires `GEMINI_API_KEY`.
 
   [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
   [![Python](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)

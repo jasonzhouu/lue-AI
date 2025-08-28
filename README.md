@@ -9,12 +9,10 @@ A feature-rich terminal-based eBook reader with Text-to-Speech capabilities, pow
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![Python](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Linux%20%7C%20Windows-lightgrey)](https://github.com/superstarryeyes/lue)
-[![Terminal](https://img.shields.io/badge/interface-terminal-blue.svg)](https://github.com/superstarryeyes/lue)
-[![Discord](https://img.shields.io/badge/Discord-Join%20our%20Community-5865F2?logo=discord&logoColor=white)](https://discord.gg/xynDDqsm)
 
 [Features](#-features) • [Quick Start](#-quick-start) • [Installation](#-installation) • [Usage](#-usage) • [Development](#-development)
 
-<img src="https://github.com/superstarryeyes/lue/blob/main/images/screenshot.png" alt="Lue Screenshot" width="100%" />
+<img src="./images/screenshot.png" alt="Lue Screenshot" width="100%" />
 
 </div>
 

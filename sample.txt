@@ -1,24 +1,34 @@
 Chapter 1: Introduction
 
-Welcome to Lue, your terminal-based eBook reader with modular text-to-speech support. This document is designed to let you practice navigating your book while hearing instructions read aloud. 
+Welcome to Lue AI — your terminal eBook reader with modular Text-to-Speech and a rich Textual UI. This sample lets you practice navigation while hearing the instructions read aloud. You can pause/resume with "p" and quit with "q" at any time; your place will be saved.
 
 
 Chapter 2: Navigation
 
-Now let’s test sentence-level navigation. Press "j" to return to the previous sentence. Press "k" to jump to the next sentence. If you want to jump to the top visible sentence on the screen, press "t" key. Press "h" to go back to the previous paragraph. Press "l" to move to the next paragraph. You can pause and resume the text-to-speech model with "p", Lue remembers exactly where you were.  
+Practice sentence-level navigation: press "j" for previous sentence and "k" for next sentence. To jump to the top visible sentence on screen, press "t". For paragraph navigation, press "h" for previous and "l" for next. You can pause/resume TTS with "p" — Lue remembers exactly where you were.  
 
 
 Chapter 3: Page and Scroll Controls
 
-You can scroll through the book without losing the highlighted sentence being read. Do that by pressing "i" to move page up, and "m" to move page down. For smaller adjustments, use "u" to scroll up or "n" to scroll down a row. Navigating with these keys, the mouse wheel, or a trackpad automatically switches Lue to manual mode. In this mode, pressing "a", returns you back to the highlighted sentence and reactivates auto-scroll mode. Auto-scroll works seamlessly with TTS, keeping your reading flow smooth and uninterrupted. "y" takes you to the beginning, and "b" takes you to the end of the book.
+Scroll without losing the highlighted sentence being read. Press "i" for page up and "m" for page down. For fine control, use "u" to scroll up or "n" to scroll down. Manual navigation via keys/mouse/trackpad pauses auto-scroll; press "a" to toggle auto-scroll and return to the highlighted sentence. "y" jumps to the beginning and "b" jumps to the end.
 
 
-Chapter 4: Mouse Actions
+Chapter 4: Table of Contents
+
+Open the Table of Contents with "c". Use ↑/↓ to navigate chapters, press Enter to jump, and Esc to close.
+
+
+Chapter 5: AI Assistant
+
+Press "?" to open the AI assistant and ask questions about the current passage. Set the environment variable GEMINI_API_KEY to enable this feature.
+
+
+Chapter 6: Mouse Actions
 
 If your terminal supports mouse input, you can click on any sentence to jump to it instantly. Use the mouse wheel or trackpad to scroll through the text, or click on the progress bar to skip directly to that position in the book.
 
 
-Chapter 5: Ending the Session
+Chapter 7: Ending the Session
 
 When you are ready to stop reading, press "q" to quit. Your place and your reading mode will be saved automatically, so you can resume later without losing your spot.
 

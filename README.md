@@ -122,6 +122,8 @@ pip install -r requirements.txt
 pip install .
 ```
 
+Kokoro voices: https://huggingface.co/hexgrad/Kokoro-82M/blob/main/VOICES.md
+
 #### Enable Apple TTS (macOS Only)
 
 For native macOS speech synthesis (no additional installation required):

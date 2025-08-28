@@ -1,18 +1,16 @@
 <div align="center">
 
-<img src="https://github.com/superstarryeyes/lue/blob/main/images/logo.png?raw=true" alt="Lue Logo" width="70%" />
+  ### Lue — Terminal eBook Reader with Text-to-Speech
 
-### Lue - Terminal eBook Reader with TTS(Text-to-Speech)
+  A fast, cross-platform terminal eBook reader with seamless TTS, a rich Textual UI, and smooth, flicker-free reading.
 
-A feature-rich terminal-based eBook reader with Text-to-Speech capabilities, powered by Textual for a smooth, flicker-free experience.
+  [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
+  [![Python](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
+  [![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Linux%20%7C%20Windows-lightgrey)](https://github.com/superstarryeyes/lue)
 
-[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
-[![Python](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
-[![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Linux%20%7C%20Windows-lightgrey)](https://github.com/superstarryeyes/lue)
+  [Features](#-features) • [Quick Start](#-quick-start) • [Installation](#-installation) • [Usage](#-usage) • [Development](#-development)
 
-[Features](#-features) • [Quick Start](#-quick-start) • [Installation](#-installation) • [Usage](#-usage) • [Development](#-development)
-
-<img src="./images/screenshot.png" alt="Lue Screenshot" width="100%" />
+  <img src="./images/screenshot.png" alt="Lue Screenshot" width="100%" />
 
 </div>
 

@@ -161,7 +161,7 @@ For high-quality AI voice synthesis:
 # 1. Install ElevenLabs package
 pip install elevenlabs
 
-# 2. Set your API key (get it from https://elevenlabs.io/speech-synthesis)
+# 2. Set your API key (get it from https://elevenlabs.io/app/developers/api-keys)
 export ELEVENLABS_API_KEY="your_api_key_here"
 
 # Or alternatively, set it in config.py:

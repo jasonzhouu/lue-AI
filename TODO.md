@@ -28,7 +28,6 @@
 
 
 ## 2/ AI assitant apge
-- [ ] AI assistant 的AI response内容太长会被截断，但是截断的长度太有限了，只能显示很少的内容
 
 
 
@@ -36,6 +35,7 @@
 - [ ] TOC界面选择章节后，跳转到的章节和选择的章节不一致。我选择了第10章，但是没有跳转，而且TTS会开始阅读第8章。说明highlight的句子在第8章，但是reader没有滚动到第8章。
 
 ## DONE
+- [x] AI assistant 的AI response内容太长会被截断，但是截断的长度太有限了，只能显示很少的内容
 - [x] AI assitant 页面输入input后，AI思考的过程中显示的 `waiting for AI response...` 会把input的内容覆盖
 - [*] 提供给AI的context中chapter的内容太短
 - [*] 调整progress bar的样式

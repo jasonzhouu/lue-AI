@@ -76,7 +76,7 @@ class AIAssistantModal(ModalScreen):
                         conv_display.append("\n")
                     conv_display.append(f"Q: {entry['question']}", style="yellow")
                     conv_display.append("\n")
-                    conv_display.append(f"A: {entry['answer'][:200]}...", style="green")
+                    conv_display.append(f"A: {entry['answer']}", style="green")
                     conv_display.append("\n")
             else:
                 conv_display = Text("Ask a question about the current text...", style="dim")

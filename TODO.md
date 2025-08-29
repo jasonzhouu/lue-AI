@@ -37,6 +37,10 @@
 - [ ] 制作electron桌面版本，以便在macOS上直接运行（后续也可以打包windows/linux版本），其中包含所有的依赖，包括ffmpeg、kokoro之类的。
 
 - [ ] 共享生成的音效。有什么书生成之后，可以共享给大家，其他人可以在这本书下面选择使用哪一种声音。
+其中有一些逻辑可以参考 https://github.com/santinic/audiblez 
+
+
+
 
 ## 2/ AI assitant apge
 

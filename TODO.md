@@ -3,14 +3,40 @@
 
 # 引入 textual 之后带来的问题
 
-## P1 level
+
 - [ ] 快捷键i,m,u,n,b,n都没有效果。快捷键u,n是scroll up/down，但是不改变highlight的句子; i,m是上下滚动屏幕
-- [ ] verse number的显示仍然存在问题。请使用最新安装的beautifulsoup4、ebooklib解决这个问题
+- [ ] verse number的显示仍然存在问题。请使用最新安装的beautifulsoup4、ebooklib解决这个问题。
+
+```
+# Mapping of regular digits to superscript digits
+        superscript_map = {
+            '0': '⁰',
+            '1': '¹',
+            '2': '²',
+            '3': '³',
+            '4': '⁴',
+            '5': '⁵',
+            '6': '⁶',
+            '7': '⁷',
+            '8': '⁸',
+            '9': '⁹',
+            '.': ''  # Decimal point
+        }
+```
+
+
 - [ ] TOC界面选择章节后，跳转到的章节和选择的章节不一致。我选择了第10章，但是没有跳转，而且TTS会开始阅读第8章。说明highlight的句子在第8章，但是reader没有滚动到第8章。
 
-## P2 level
+
+
+
 
 ## DONE
+- [*] 调整progress bar的样式
+
+```
+progress_bar = "▓" * filled_blocks + "░" * empty_blocks
+```
 - [*] 在reader界面上显示书名
 - [x] show short key (f) after the focus mode text hint. and apply same change to the other 2.
 - [*] Show focus mode text in the cornor of the screen in grayed style when it's not in focus mode, rather than totally hide it.

@@ -4,7 +4,7 @@ Handles content display, progress tracking, and user interactions.
 """
 
 from typing import Optional, TYPE_CHECKING
-from textual.widgets import Static, ProgressBar
+from textual.widgets import Static
 from textual.containers import Vertical, Horizontal
 from textual.reactive import reactive
 from textual.events import Click, MouseScrollUp, MouseScrollDown
@@ -32,7 +32,7 @@ class ReaderWidget(Static):
             # Header with book title and progress bar
             with Horizontal(id="header"):
                 yield Static(id="book-title")
-                yield ProgressBar(total=100, show_eta=False, id="progress-bar")
+                yield Static(id="progress-bar")
             yield Static(id="content-display")
             yield Static(id="tts-status")
         
@@ -100,9 +100,9 @@ class ReaderWidget(Static):
             return Text("No content available", style="dim")
         
     def update_progress(self) -> None:
-        """Update the progress bar."""
+        """Update the progress bar with custom block characters."""
         try:
-            progress_widget = self.query_one("#progress-bar", ProgressBar)
+            progress_widget = self.query_one("#progress-bar", Static)
             
             # Calculate progress percentage
             if hasattr(self.lue, 'get_reading_progress'):
@@ -113,8 +113,27 @@ class ReaderWidget(Static):
                 total_paragraphs = sum(len(chapter) for chapter in self.lue.chapters)
                 current_paragraph = sum(len(self.lue.chapters[i]) for i in range(chapter_idx)) + para_idx
                 progress = (current_paragraph / total_paragraphs * 100) if total_paragraphs > 0 else 0
-                
-            progress_widget.update(progress=progress)
+            
+            # Create custom progress bar with block characters
+            # Get available width for progress bar (estimate based on terminal width)
+            from ..ui import get_terminal_size
+            width, _ = get_terminal_size()
+            # Reserve space for book title and padding
+            available_width = max(10, width // 3)  # Roughly 1/3 of terminal width
+            
+            # Calculate filled and empty blocks
+            filled_blocks = int((progress / 100) * available_width)
+            empty_blocks = available_width - filled_blocks
+            
+            # Create progress bar string using block characters
+            progress_bar = "▓" * filled_blocks + "░" * empty_blocks
+            
+            # Add percentage text
+            progress_text = Text()
+            progress_text.append(progress_bar, style="cyan")
+            progress_text.append(f" {progress:.0f}%", style="dim")
+            
+            progress_widget.update(progress_text)
         except Exception:
             # Graceful error handling for progress bar
             pass

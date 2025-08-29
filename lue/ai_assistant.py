@@ -66,7 +66,7 @@ class AIAssistant:
             
             context = f"Current Chapter: {chapter_title}\n" if chapter_title else ""
             context += f"Current Sentence: \"{current_sentence}\"\n"
-            context += f"Current Paragraph: \"{current_paragraph[:200]}{'...' if len(current_paragraph) > 200 else ''}\""
+            context += f"Current Paragraph: \"{current_paragraph[:1000]}{'...' if len(current_paragraph) > 1000 else ''}\""
             
             return context
         except (IndexError, AttributeError) as e:

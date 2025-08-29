@@ -3,7 +3,7 @@
 
 # 引入 textual 之后带来的问题
 
-
+## 1/ reader page
 - [ ] 快捷键i,m,u,n,b,n都没有效果。快捷键u,n是scroll up/down，但是不改变highlight的句子; i,m是上下滚动屏幕
 - [ ] verse number的显示仍然存在问题。请使用最新安装的beautifulsoup4、ebooklib解决这个问题。
 
@@ -28,10 +28,14 @@
 - [ ] TOC界面选择章节后，跳转到的章节和选择的章节不一致。我选择了第10章，但是没有跳转，而且TTS会开始阅读第8章。说明highlight的句子在第8章，但是reader没有滚动到第8章。
 
 
+## 2/ AI assitant apge
+- [ ] AI assistant 的AI response内容太长会被截断，但是截断的长度太有限了，只能显示很少的内容
 
+- [ ] AI assitant 页面输入input后，AI思考的过程中显示的 `waiting for AI response...` 会把input的内容覆盖
 
 
 ## DONE
+- [*] 提供给AI的context中chapter的内容太短
 - [*] 调整progress bar的样式
 
 ```

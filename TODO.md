@@ -30,6 +30,14 @@
 
 - [ ] focus mode下，高亮当前TTS阅读的单词。使用基于语音速率估算的方法。
 
+- [ ] 有时候会出现TTS阅读的句子和highlighted sentence对应不上。可能是因为TTS延迟太大造成的。只有在使用延迟大的elevenlabs TTS的时候才会出现这个问题。
+
+- [ ] 对TTS的audio进行缓存，同样的TTS、voice、sentence，在下一次阅读的时候，不需要重新生成。特别是elevenlabs这种需要付费的API
+
+- [ ] 制作electron桌面版本，以便在macOS上直接运行（后续也可以打包windows/linux版本），其中包含所有的依赖，包括ffmpeg、kokoro之类的。
+
+- [ ] 共享生成的音效。有什么书生成之后，可以共享给大家，其他人可以在这本书下面选择使用哪一种声音。
+
 ## 2/ AI assitant apge
 
 ## 3/ TOC page

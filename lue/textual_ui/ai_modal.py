@@ -28,6 +28,7 @@ class AIAssistantModal(ModalScreen):
         super().__init__()
         self.lue = lue_instance
         self.input_buffer = ""
+        self.sent_message = ""  # Store the message being processed
         self.conversation_history = []
         self.current_context = ""
         self.waiting_for_response = False
@@ -90,7 +91,11 @@ class AIAssistantModal(ModalScreen):
             input_widget = self.query_one("#ai-input-display", Static)
             
             if self.waiting_for_response:
-                input_content = Text("❯ Waiting for AI response...", style="yellow")
+                # Show the sent message and waiting status
+                input_content = Text()
+                input_content.append(f"❯ {self.sent_message}", style="white")
+                input_content.append(" ", style="white")
+                input_content.append("(Waiting for AI response...)", style="yellow")
             else:
                 cursor = "█" if len(self.input_buffer) % 2 == 0 else " "  # Blinking cursor effect
                 input_content = Text(f"❯ {self.input_buffer}{cursor}", style="white")
@@ -124,6 +129,7 @@ class AIAssistantModal(ModalScreen):
             return
             
         question = self.input_buffer.strip()
+        self.sent_message = question  # Store the message being processed
         self.input_buffer = ""
         self.waiting_for_response = True
         self.update_input_display()
@@ -150,5 +156,6 @@ class AIAssistantModal(ModalScreen):
             })
         finally:
             self.waiting_for_response = False
+            self.sent_message = ""  # Clear the sent message
             self.update_conversation_display()
             self.update_input_display()

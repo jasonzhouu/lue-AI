@@ -9,9 +9,9 @@
 - [ ] TOC界面选择章节后，跳转到的章节和选择的章节不一致。我选择了第10章，但是没有跳转，而且TTS会开始阅读第8章。说明highlight的句子在第8章，但是reader没有滚动到第8章。
 
 ## P2 level
-- [ ] 在reader界面左上角显示书名，将progress bar放在reader界面右上角
 
 ## DONE
+- [*] 在reader界面上显示书名
 - [x] show short key (f) after the focus mode text hint. and apply same change to the other 2.
 - [*] Show focus mode text in the cornor of the screen in grayed style when it's not in focus mode, rather than totally hide it.
 - [*] in focus mode, display the current sentence in the middle of the whole screen, and with larger font size

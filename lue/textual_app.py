@@ -21,6 +21,18 @@ class LueApp(App):
     """Main Textual application for Lue e-book reader."""
     
     CSS = """
+    #header {
+        height: 1;
+        padding: 0 1;
+        background: $surface;
+    }
+    
+    #book-title {
+        width: 2fr;
+        height: 1;
+        text-align: left;
+    }
+    
     #content-display {
         height: 1fr;
         padding: 1;
@@ -28,15 +40,15 @@ class LueApp(App):
     }
     
     #progress-bar {
-        width: 3fr;
+        width: 1fr;
         height: 1;
     }
     
     #tts-status {
-        width: 2fr;
         height: 1;
-        text-align: right;
+        text-align: center;
         padding: 0 1;
+        background: $surface;
     }
     
     #toc-container, #ai-container {

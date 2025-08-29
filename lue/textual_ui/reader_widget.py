@@ -29,19 +29,23 @@ class ReaderWidget(Static):
     def compose(self) -> ComposeResult:
         """Create child widgets."""
         with Vertical():
-            yield Static(id="content-display")
-            with Horizontal():
+            # Header with book title and progress bar
+            with Horizontal(id="header"):
+                yield Static(id="book-title")
                 yield ProgressBar(total=100, show_eta=False, id="progress-bar")
-                yield Static(id="tts-status")
+            yield Static(id="content-display")
+            yield Static(id="tts-status")
         
     def on_mount(self) -> None:
         """Initialize widget when mounted."""
+        self.update_book_title()
         self.update_content_display()
         self.update_progress()
         self.update_tts_status()
         
     def watch_current_position(self, position: tuple) -> None:
         """Update display when position changes."""
+        self.update_book_title()
         self.update_content_display()
         self.update_progress()
         self.update_tts_status()
@@ -113,6 +117,28 @@ class ReaderWidget(Static):
             progress_widget.update(progress=progress)
         except Exception:
             # Graceful error handling for progress bar
+            pass
+            
+    def update_book_title(self) -> None:
+        """Update the book title display."""
+        try:
+            title_widget = self.query_one("#book-title", Static)
+            
+            # Get book title from the lue instance
+            book_title = getattr(self.lue, 'book_title', None)
+            if not book_title and hasattr(self.lue, 'file_path'):
+                # Extract title from file path if no explicit title
+                import os
+                book_title = os.path.splitext(os.path.basename(self.lue.file_path))[0]
+            
+            if book_title:
+                title_text = Text()
+                title_text.append("📖 ", style="cyan")
+                title_text.append(book_title, style="bold cyan")
+                title_widget.update(title_text)
+            else:
+                title_widget.update(Text("📖 Book", style="bold cyan"))
+        except Exception:
             pass
             
     def update_tts_status(self) -> None:

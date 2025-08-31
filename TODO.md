@@ -32,6 +32,15 @@
 
 - [ ] 有时候会出现TTS阅读的句子和highlighted sentence对应不上。可能是因为TTS延迟太大造成的。只有在使用延迟大的elevenlabs TTS的时候才会出现这个问题。
 
+## 开发客户端
+
+### 1. react native
+
+现在人喜欢用手机听书，而不是电脑客户端。但是手机客户端无法使用kokoro TTS。
+体验可以参考elevenlabs reader的APP，但是elevenlabs不支持中文，这意味着还有很大的中国市场暂时还没有被满足。
+
+### 2. electron电脑客户端
+
 - [ ] 对TTS的audio进行缓存，同样的TTS、voice、sentence，在下一次阅读的时候，不需要重新生成。特别是elevenlabs这种需要付费的API
 
 - [ ] 制作electron桌面版本，以便在macOS上直接运行（后续也可以打包windows/linux版本），其中包含所有的依赖，包括ffmpeg、kokoro之类的。
